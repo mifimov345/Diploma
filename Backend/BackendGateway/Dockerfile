@@ -1,15 +1,25 @@
 # Этап сборки
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
 WORKDIR /src
-COPY ["Backend/BackendGateway/BackendGateway.csproj", "Backend/BackendGateway/"]
-RUN dotnet restore "Backend/BackendGateway/BackendGateway.csproj"
-COPY Backend/BackendGateway/. ./Backend/BackendGateway/
-WORKDIR /src/Backend/BackendGateway
-RUN dotnet publish -c Release -o /app/publish
+
+# Копируем csproj и восстанавливаем зависимости
+COPY Backend/BackendGateway/BackendGateway.csproj ./BackendGateway/
+RUN ls -l /src/BackendGateway && dotnet restore "/src/BackendGateway/BackendGateway.csproj"
+
+# Копируем все файлы и публикуем проект
+COPY . .
+WORKDIR /src/BackendGateway
+RUN ls -l /src/BackendGateway && dotnet publish "/src/BackendGateway/BackendGateway.csproj" -c Release -o /app/publish
 
 # Этап выполнения
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-COPY --from=build /app/publish .
 EXPOSE 80
+EXPOSE 443
+
+# Копируем результаты сборки из этапа сборки
+COPY --from=build /app/publish .
+
+# Запускаем приложение
 ENTRYPOINT ["dotnet", "BackendGateway.dll"]
