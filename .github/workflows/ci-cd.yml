@@ -39,7 +39,7 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Log in to Docker Hub
-        run: echo "${{ dckr_pat_8UuWynqcAXlmdAWHGblP8y-kQAU }}" | docker login -u "${{ mifimov345 }}" --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       # Сборка и пуш Docker образов с использованием docker-compose
       - name: Build and push Docker images

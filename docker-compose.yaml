@@ -5,7 +5,7 @@ services:
     build:
       context: ./Backend/AuthService
       dockerfile: Dockerfile
-    image: mydockerhubuser/authservice:latest
+    image: mifimov345/authservice:latest
     ports:
       - "5000:80"
 
@@ -13,7 +13,7 @@ services:
     build:
       context: ./Backend/BackendGateway
       dockerfile: Dockerfile
-    image: mydockerhubuser/backendgateway:latest
+    image: mifimov345/backendgateway:latest
     ports:
       - "5001:80"
 
@@ -21,7 +21,7 @@ services:
     build:
       context: ./Backend/FileService
       dockerfile: Dockerfile
-    image: mydockerhubuser/fileservice:latest
+    image: mifimov345/fileservice:latest
     ports:
       - "5002:80"
 
@@ -29,6 +29,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: mydockerhubuser/frontend:latest
+    image: mifimov345/frontend:latest
     ports:
       - "8080:80"
