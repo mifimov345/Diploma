@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "RSO0GG/MQbcHy/JNIzN87A7IcAGiJuaU2p8gSUsTKMepVjMM/LG19DuNG/43SLBsJqkNiABUx7qVuQbyol7ySw==",
+  "dgSpecHash": "tug/EKyywZp3GUvypCwKeYUXDR92FTbEmrJypwFnymeVjF/yQtZmTjx1h5m4l8mHXCdO6sAB8MVL6YG4CeX5fQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
+  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mifim\\.nuget\\packages\\coverlet.collector\\6.0.0\\coverlet.collector.6.0.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\microsoft.aspnetcore.mvc.testing\\8.0.13\\microsoft.aspnetcore.mvc.testing.8.0.13.nupkg.sha512",

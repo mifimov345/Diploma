@@ -1,0 +1,9 @@
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\bin\Debug\net8.0\.msCoverageSourceRootsMapping_AuthService.Tests
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\bin\Debug\net8.0\CoverletSourceRootsMapping_AuthService.Tests
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\AuthService.Tests.csproj.AssemblyReference.cache
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\MvcTestingAppManifest.json
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\AuthService.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\AuthService.Tests.AssemblyInfoInputs.cache
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\AuthService.Tests.AssemblyInfo.cs
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\AuthService.Tests.csproj.CoreCompileInputs.cache
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService.Tests\obj\Debug\net8.0\AuthService.Tests.sourcelink.json

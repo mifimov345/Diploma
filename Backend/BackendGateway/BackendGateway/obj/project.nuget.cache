@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "fehadunXGkXf1Hl9Ug3Beu3Kyb+XijBAmiewM5p9MudtN5YAu19oO7ihvV5f3xFEzwrkJIspAk1Ml2yxgbBtiw==",
+  "dgSpecHash": "QpfK3ltASK5g/WzMAGsbWR9geh0HFa4jokwUtaP8kL1OcLRQg2OtCVQeiSfyJoU7hwpVYjdNAKmQDzvA/KWseQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
+  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mifim\\.nuget\\packages\\microsoft.extensions.apidescription.server\\6.0.5\\microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\microsoft.openapi\\1.2.3\\microsoft.openapi.1.2.3.nupkg.sha512",

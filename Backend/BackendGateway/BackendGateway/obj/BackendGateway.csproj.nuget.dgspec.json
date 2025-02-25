@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj": {}
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj": {}
   },
   "projects": {
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj": {
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
+        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
         "projectName": "BackendGateway",
-        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
+        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
         "packagesPath": "C:\\Users\\mifim\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\obj\\",
+        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

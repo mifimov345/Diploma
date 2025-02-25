@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "hRMjCSLgKw6Ea2lLGUtUrpN4zj0uFwNH6Vq88SAHYQiTE48jQe9jgPBldy6dJr3Bhxi0nSRfYwqZoFU6+QAM9Q==",
+  "dgSpecHash": "I7Vx45sL0fNFEUXCNvCiyRQY2InxSHHtsqhSmbPSrSKvs1RtX6OoUi8/hRVFW1lEphEk0BFw6ybEagtvIwl1dQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\AuthService\\AuthService\\AuthService.csproj",
+  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mifim\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.7\\microsoft.aspnetcore.authentication.jwtbearer.8.0.7.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\microsoft.bcl.memory\\9.0.0\\microsoft.bcl.memory.9.0.0.nupkg.sha512",

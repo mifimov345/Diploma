@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\AuthService\\AuthService\\AuthService.csproj": {}
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj": {}
   },
   "projects": {
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\AuthService\\AuthService\\AuthService.csproj": {
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\AuthService\\AuthService\\AuthService.csproj",
+        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj",
         "projectName": "AuthService",
-        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\AuthService\\AuthService\\AuthService.csproj",
+        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj",
         "packagesPath": "C:\\Users\\mifim\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\AuthService\\AuthService\\obj\\",
+        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

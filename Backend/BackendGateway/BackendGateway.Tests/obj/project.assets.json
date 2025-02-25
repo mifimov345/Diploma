@@ -3361,11 +3361,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
+      "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
       "projectName": "BackendGateway.Tests",
-      "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
+      "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
       "packagesPath": "C:\\Users\\mifim\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway.Tests\\obj\\",
+      "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3386,8 +3386,8 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj": {
-              "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj"
+            "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj": {
+              "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj"
             }
           }
         }
