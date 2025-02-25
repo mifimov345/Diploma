@@ -1,45 +1,42 @@
-﻿using System.Net.Http;
-using System.Threading.Tasks;
-using Xunit;
+﻿using Xunit;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Net.Http.Json;
-using AuthService;
+using Microsoft.VisualStudio.TestPlatform.TestHost;
 
-namespace AuthService.Tests
+public class AuthControllerTests : IClassFixture<WebApplicationFactory<Program>>  // Используем Program напрямую
 {
-    public class AuthControllerTests : IClassFixture<WebApplicationFactory<AuthService.Program>>
+    private readonly HttpClient _client;
+
+    public AuthControllerTests(WebApplicationFactory<Program> factory)  // Используем Program напрямую
     {
-        private readonly HttpClient _client;
+        _client = factory.CreateClient();
+    }
 
-        public AuthControllerTests(WebApplicationFactory<AuthService.Program> factory)
-        {
-            _client = factory.CreateClient();
-        }
+    [Fact]
+    public async Task Login_ReturnsOk_WhenValidCredentials()
+    {
+        // Arrange
+        var loginRequest = new { username = "admin", password = "password" };
 
-        [Fact]
-        public async Task Login_ReturnsOk_WhenValidCredentials()
-        {
-            // Arrange
-            var loginRequest = new { username = "admin", password = "password" };
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
-            // Act
-            var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        // Assert
+        response.EnsureSuccessStatusCode();  // 200-299
+    }
 
-            // Assert
-            response.EnsureSuccessStatusCode();  // 200-299
-        }
+    [Fact]
+    public async Task Login_ReturnsUnauthorized_WhenInvalidCredentials()
+    {
+        // Arrange
+        var loginRequest = new { username = "admin", password = "wrongpassword" };
 
-        [Fact]
-        public async Task Login_ReturnsUnauthorized_WhenInvalidCredentials()
-        {
-            // Arrange
-            var loginRequest = new { username = "admin", password = "wrongpassword" };
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
-            // Act
-            var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
-
-            // Assert
-            NUnit.Framework.Assert.False(response.IsSuccessStatusCode); // 401
-        }
+        // Assert
+        Assert.False(response.IsSuccessStatusCode); // 401
     }
 }
