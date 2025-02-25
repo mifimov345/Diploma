@@ -4,7 +4,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Копируем csproj и восстанавливаем зависимости
-COPY Backend/AuthService/AuthService/AuthService.csproj ./AuthService/
+COPY ./Backend/AuthService/AuthService/AuthService.csproj ./AuthService/
 RUN ls -l /src/AuthService && dotnet restore "/src/AuthService/AuthService.csproj"
 
 # Копируем все файлы и публикуем проект

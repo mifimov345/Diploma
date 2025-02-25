@@ -1,4 +1,4 @@
-name: Docker Build and Deploy
+name: CI/CD Pipeline
 
 on:
   push:
@@ -11,51 +11,54 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      # Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v2
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      # Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+    # Set up Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      # Cache Docker layers
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+    # Install Docker Compose
+    - name: Install Docker Compose
+      run: |
+        sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        sudo chmod +x /usr/local/bin/docker-compose
+        docker-compose --version
 
-      # Build and push Docker images for each service
-      - name: Build and push AuthService
-        run: |
-          docker build -t mydockerhubuser/authservice:latest ./Backend/AuthService
-          docker push mydockerhubuser/authservice:latest
+    # Cache Docker layers
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
 
-      - name: Build and push FileService
-        run: |
-          docker build -t mydockerhubuser/fileservice:latest ./Backend/FileService
-          docker push mydockerhubuser/fileservice:latest
+    # Build and push Docker images using docker-compose
+    - name: Build and push Docker images
+      run: |
+        docker-compose -f docker-compose.yaml build
+        docker-compose -f docker-compose.yaml push
 
-      - name: Build and push BackendGateway
-        run: |
-          docker build -t mydockerhubuser/backendgateway:latest ./Backend/BackendGateway
-          docker push mydockerhubuser/backendgateway:latest
+    # Run tests
+    - name: Run Backend Tests
+      run: |
+        dotnet test ./Backend/AuthService/AuthService.Tests/AuthService.Tests.csproj
+        dotnet test ./Backend/BackendGateway/BackendGateway.Tests/BackendGateway.Tests.csproj
+        dotnet test ./Backend/FileService/FileService.Tests/FileService.Tests.csproj
 
-      - name: Build and push Frontend
-        run: |
-          docker build -t mydockerhubuser/frontend:latest ./Frontend
-          docker push mydockerhubuser/frontend:latest
+    # (Optional) Run Frontend tests if any, for example using jest, mocha, etc.
+    - name: Run Frontend Tests
+      run: |
+        cd frontend
+        npm install
+        npm test
 
-      # Run tests
-      - name: Run unit tests
-        run: |
-          dotnet test ./Backend/AuthService/AuthService.Tests/AuthService.Tests.csproj
-          dotnet test ./Backend/FileService/FileService.Tests/FileService.Tests.csproj
-          dotnet test ./Backend/BackendGateway/BackendGateway.Tests/BackendGateway.Tests.csproj
-
-      # Deploy (optional step)
-      # You can add deployment steps here for Kubernetes, Docker Swarm, or other platforms.
+    # (Optional) Deploy step (e.g., deploy to a cloud platform)
+    - name: Deploy to Cloud
+      run: |
+        # Add deployment steps here (Kubernetes, Docker Swarm, etc.)
+        echo "Deploying application..."

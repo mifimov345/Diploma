@@ -1,41 +1,30 @@
 version: '3.8'
+
 services:
   authservice:
     build:
-      context: .
-      dockerfile: Backend/AuthService/Dockerfile  # Указываем правильный путь
-    ports:
-      - "5001:80"
-    networks:
-      - app-network
-
-  backendgateway:
-    build:
-      context: .
-      dockerfile: Backend/BackendGateway/Dockerfile  # Указываем правильный путь
+      context: ./Backend/AuthService
+    image: mydockerhubuser/authservice:latest
     ports:
       - "5000:80"
-    networks:
-      - app-network
+  
+  backendgateway:
+    build:
+      context: ./Backend/BackendGateway
+    image: mydockerhubuser/backendgateway:latest
+    ports:
+      - "5001:80"
 
   fileservice:
     build:
-      context: .
-      dockerfile: Backend/FileService/Dockerfile  # Указываем правильный путь
+      context: ./Backend/FileService
+    image: mydockerhubuser/fileservice:latest
     ports:
       - "5002:80"
-    networks:
-      - app-network
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile  # Указываем правильный путь
+      context: ./frontend
+    image: mydockerhubuser/frontend:latest
     ports:
       - "8080:80"
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
