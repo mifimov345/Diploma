@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "xjkjjuubAPHFjPGeXU8eEIOfdfZF41hhAwnG4rBVunM7hU1kccU/vbBSglP5eD3xxXPcqR4UUoZ6xo2O3tJtpg==",
+  "dgSpecHash": "8m8qgyd7+g20Pif4qKtxO5Zwpjj7UHc1tXDlgcoqcRfBCILfRmf9a+hyMSL5FDK++uD2oPu5qeFnfDkQSPDqsg==",
   "success": true,
-  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj",
+  "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\mifim\\.nuget\\packages\\coverlet.collector\\6.0.0\\coverlet.collector.6.0.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\microsoft.aspnetcore.mvc.testing\\8.0.13\\microsoft.aspnetcore.mvc.testing.8.0.13.nupkg.sha512",

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj": {}
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj": {}
   },
   "projects": {
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj": {
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj",
+        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj",
         "projectName": "FileService.Tests",
-        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj",
+        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService.Tests\\FileService.Tests.csproj",
         "packagesPath": "C:\\Users\\mifim\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService.Tests\\obj\\",
+        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService.Tests\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -32,8 +32,8 @@
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService\\FileService.csproj": {
-                "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService\\FileService.csproj"
+              "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj": {
+                "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj"
               }
             }
           }
@@ -108,14 +108,14 @@
         }
       }
     },
-    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService\\FileService.csproj": {
+    "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService\\FileService.csproj",
+        "projectUniqueName": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj",
         "projectName": "FileService",
-        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService\\FileService.csproj",
+        "projectPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj",
         "packagesPath": "C:\\Users\\mifim\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\Backend\\FileService\\FileService\\obj\\",
+        "outputPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

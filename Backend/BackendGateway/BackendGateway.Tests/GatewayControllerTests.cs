@@ -2,14 +2,15 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Xunit;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.VisualStudio.TestPlatform.TestHost;
 
 namespace BackendGateway.Tests
 {
-    public class GatewayControllerTests : IClassFixture<WebApplicationFactory<BackendGateway.Program>>
+    public class GatewayControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
         private readonly HttpClient _client;
 
-        public GatewayControllerTests(WebApplicationFactory<BackendGateway.Program> factory)
+        public GatewayControllerTests(WebApplicationFactory<Program> factory)
         {
             _client = factory.CreateClient();
         }

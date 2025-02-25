@@ -4,13 +4,15 @@ services:
   authservice:
     build:
       context: ./Backend/AuthService
+      dockerfile: Dockerfile
     image: mydockerhubuser/authservice:latest
     ports:
       - "5000:80"
-  
+
   backendgateway:
     build:
       context: ./Backend/BackendGateway
+      dockerfile: Dockerfile
     image: mydockerhubuser/backendgateway:latest
     ports:
       - "5001:80"
@@ -18,6 +20,7 @@ services:
   fileservice:
     build:
       context: ./Backend/FileService
+      dockerfile: Dockerfile
     image: mydockerhubuser/fileservice:latest
     ports:
       - "5002:80"
@@ -25,6 +28,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile
     image: mydockerhubuser/frontend:latest
     ports:
       - "8080:80"

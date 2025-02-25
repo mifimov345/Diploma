@@ -3,14 +3,16 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Xunit;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.VisualStudio.TestPlatform.TestHost;
+
 
 namespace FileService.Tests
 {
-    public class FileControllerTests : IClassFixture<WebApplicationFactory<FileService.Program>>
+    public class FileControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
         private readonly HttpClient _client;
 
-        public FileControllerTests(WebApplicationFactory<FileService.Program> factory)
+        public FileControllerTests(WebApplicationFactory<Program> factory)
         {
             _client = factory.CreateClient();
         }
