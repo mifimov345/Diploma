@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "zUWC42x1A6nGPITI9vTA+t2CJVxWGjSxOljNvUdQA00=",
+  "Source": "BackendGateway",
+  "BasePath": "_content/BackendGateway",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
