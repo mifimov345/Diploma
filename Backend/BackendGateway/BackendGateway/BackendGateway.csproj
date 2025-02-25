@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<OutputType>exe</OutputType>
 	<PreserveCompilationContext>true</PreserveCompilationContext>
+	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
   </PropertyGroup>
 
