@@ -2,37 +2,37 @@ version: '3.8'
 services:
   authservice:
     build:
-      context: ./AuthService
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Backend/AuthService/Dockerfile  # Указываем правильный путь
     ports:
-      - "5001:80"  # Порт для доступа к AuthService
+      - "5001:80"
     networks:
       - app-network
 
   backendgateway:
     build:
-      context: ./BackendGateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Backend/BackendGateway/Dockerfile  # Указываем правильный путь
     ports:
-      - "5000:80"  # Порт для доступа к BackendGateway
+      - "5000:80"
     networks:
       - app-network
 
   fileservice:
     build:
-      context: ./FileService
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Backend/FileService/Dockerfile  # Указываем правильный путь
     ports:
-      - "5002:80"  # Порт для доступа к FileService
+      - "5002:80"
     networks:
       - app-network
 
-  frontendvue:
+  frontend:
     build:
-      context: ./FrontendVue
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile  # Указываем правильный путь
     ports:
-      - "8080:80"  # Порт для доступа к FrontendVue
+      - "8080:80"
     networks:
       - app-network
 
