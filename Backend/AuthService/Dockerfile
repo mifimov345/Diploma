@@ -1,10 +1,10 @@
 # Этап сборки
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-COPY ["AuthService/AuthService.csproj", "AuthService/"]
-RUN dotnet restore "AuthService/AuthService.csproj"
-COPY AuthService/. ./AuthService/
-WORKDIR /src/AuthService
+COPY ["Backend/AuthService/AuthService.csproj", "Backend/AuthService/"]
+RUN dotnet restore "Backend/AuthService/AuthService.csproj"
+COPY Backend/AuthService/. ./Backend/AuthService/
+WORKDIR /src/Backend/AuthService
 RUN dotnet publish -c Release -o /app/publish
 
 # Этап выполнения

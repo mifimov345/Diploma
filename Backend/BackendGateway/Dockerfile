@@ -1,10 +1,10 @@
 # Этап сборки
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 WORKDIR /src
-COPY ["BackendGateway/BackendGateway.csproj", "BackendGateway/"]
-RUN dotnet restore "BackendGateway/BackendGateway.csproj"
-COPY BackendGateway/. ./BackendGateway/
-WORKDIR /src/BackendGateway
+COPY ["Backend/BackendGateway/BackendGateway.csproj", "Backend/BackendGateway/"]
+RUN dotnet restore "Backend/BackendGateway/BackendGateway.csproj"
+COPY Backend/BackendGateway/. ./Backend/BackendGateway/
+WORKDIR /src/Backend/BackendGateway
 RUN dotnet publish -c Release -o /app/publish
 
 # Этап выполнения
