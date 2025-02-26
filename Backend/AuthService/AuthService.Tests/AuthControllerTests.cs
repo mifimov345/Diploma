@@ -1,16 +1,16 @@
 ﻿using Xunit;
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Net.Http.Json;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
+using AuthService.Tests;
 
-public class AuthControllerTests : IClassFixture<WebApplicationFactory<Program>>  // Используем Program напрямую
+public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
-    public AuthControllerTests(WebApplicationFactory<Program> factory)  // Используем Program напрямую
+    public AuthControllerTests(CustomWebApplicationFactory<Program> factory)
     {
+        // Создаем клиент через нашу кастомную фабрику
         _client = factory.CreateClient();
     }
 
@@ -24,7 +24,7 @@ public class AuthControllerTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
-        response.EnsureSuccessStatusCode();  // 200-299
+        response.EnsureSuccessStatusCode();
     }
 
     [Fact]
@@ -37,6 +37,6 @@ public class AuthControllerTests : IClassFixture<WebApplicationFactory<Program>>
         var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
 
         // Assert
-        Assert.False(response.IsSuccessStatusCode); // 401
+        Assert.False(response.IsSuccessStatusCode);
     }
 }

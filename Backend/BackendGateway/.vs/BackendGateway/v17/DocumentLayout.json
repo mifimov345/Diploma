@@ -3,6 +3,22 @@
   "WorkspaceRootPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{D3537FAD-2E6F-4DCD-B4F4-5AAA0A8A5B3E}|BackendGateway.Tests\\BackendGateway.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway.tests\\gatewaycontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D3537FAD-2E6F-4DCD-B4F4-5AAA0A8A5B3E}|BackendGateway.Tests\\BackendGateway.Tests.csproj|solutionrelative:backendgateway.tests\\gatewaycontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D3537FAD-2E6F-4DCD-B4F4-5AAA0A8A5B3E}|BackendGateway.Tests\\BackendGateway.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway.tests\\customwebapplicationfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{D3537FAD-2E6F-4DCD-B4F4-5AAA0A8A5B3E}|BackendGateway.Tests\\BackendGateway.Tests.csproj|solutionrelative:backendgateway.tests\\customwebapplicationfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway\\controllers\\gatewaycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\controllers\\gatewaycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway\\backendgateway.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
       "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\backendgateway.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     },
@@ -15,20 +31,8 @@
       "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\backendgateway.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{D3537FAD-2E6F-4DCD-B4F4-5AAA0A8A5B3E}|BackendGateway.Tests\\BackendGateway.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway.tests\\gatewaycontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{D3537FAD-2E6F-4DCD-B4F4-5AAA0A8A5B3E}|BackendGateway.Tests\\BackendGateway.Tests.csproj|solutionrelative:backendgateway.tests\\gatewaycontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\backendgateway\\backendgateway\\controllers\\gatewaycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{705C7B2F-E7C1-4DF6-94D7-04F589817758}|BackendGateway\\BackendGateway.csproj|solutionrelative:backendgateway\\controllers\\gatewaycontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -38,7 +42,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 4,
+          "SelectedChildIndex": 7,
           "Children": [
             {
               "$type": "Bookmark",
@@ -54,7 +58,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 1,
+              "Title": "CustomWebApplicationFactory.cs",
+              "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\CustomWebApplicationFactory.cs",
+              "RelativeDocumentMoniker": "BackendGateway.Tests\\CustomWebApplicationFactory.cs",
+              "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\CustomWebApplicationFactory.cs",
+              "RelativeToolTip": "BackendGateway.Tests\\CustomWebApplicationFactory.cs",
+              "ViewState": "AQIAACUAAAAAAAAAAAAAwD8AAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-02-26T00:03:59.462Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "BackendGateway",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
               "RelativeDocumentMoniker": "BackendGateway\\BackendGateway.csproj",
@@ -66,7 +83,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 4,
               "Title": "BackendGateway.csproj",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
               "RelativeDocumentMoniker": "BackendGateway\\BackendGateway.csproj",
@@ -79,7 +96,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 5,
               "Title": "BackendGateway.Tests.csproj",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
               "RelativeDocumentMoniker": "BackendGateway.Tests\\BackendGateway.Tests.csproj",
@@ -92,19 +109,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "GatewayControllerTests.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\GatewayControllerTests.cs",
               "RelativeDocumentMoniker": "BackendGateway.Tests\\GatewayControllerTests.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\GatewayControllerTests.cs",
               "RelativeToolTip": "BackendGateway.Tests\\GatewayControllerTests.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAwAAABNAAAA",
+              "ViewState": "AQIAAAoAAAAAAAAAAAAAwCQAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-25T17:12:42.967Z"
+              "WhenOpened": "2025-02-25T17:12:42.967Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "launchSettings.json",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\Properties\\launchSettings.json",
               "RelativeDocumentMoniker": "BackendGateway\\Properties\\launchSettings.json",
@@ -116,27 +134,29 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 3,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\Program.cs",
               "RelativeDocumentMoniker": "BackendGateway\\Program.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\Program.cs",
               "RelativeToolTip": "BackendGateway\\Program.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABIAAAAAAAAA",
+              "ViewState": "AQIAAAYAAAAAAAAAAAAAABwAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-25T12:47:58.261Z"
+              "WhenOpened": "2025-02-25T12:47:58.261Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 2,
               "Title": "GatewayController.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\Controllers\\GatewayController.cs",
               "RelativeDocumentMoniker": "BackendGateway\\Controllers\\GatewayController.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\Controllers\\GatewayController.cs",
               "RelativeToolTip": "BackendGateway\\Controllers\\GatewayController.cs",
-              "ViewState": "AQIAAA0AAAAAAAAAAAAgwBQAAAAJAAAA",
+              "ViewState": "AQIAAB4AAAAAAAAAAAAuwDAAAAA2AAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-01-14T19:41:04.255Z"
+              "WhenOpened": "2025-01-14T19:41:04.255Z",
+              "EditorCaption": ""
             }
           ]
         }

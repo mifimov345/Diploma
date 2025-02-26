@@ -2,35 +2,31 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Xunit;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.VisualStudio.TestPlatform.TestHost;
-
+using YourTestsNamespace; // Пространство имен для CustomWebApplicationFactory
 
 namespace FileService.Tests
 {
-    public class FileControllerTests : IClassFixture<WebApplicationFactory<Program>>
+    public class FileControllerTests : IClassFixture<CustomWebApplicationFactory<Program>>
     {
         private readonly HttpClient _client;
 
-        public FileControllerTests(WebApplicationFactory<Program> factory)
+        public FileControllerTests(CustomWebApplicationFactory<Program> factory)
         {
             _client = factory.CreateClient();
         }
 
         [Fact]
-        public async Task UploadFile_ReturnsOk_WhenFileIsUploaded()
+        public async Task UploadFile_ReturnsOk()
         {
-            // Arrange
-            var formData = new MultipartFormDataContent();
-            var fileContent = new ByteArrayContent(System.IO.File.ReadAllBytes("path_to_some_file"));
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-            formData.Add(fileContent, "file", "testfile.txt");
+            using var form = new MultipartFormDataContent();
+            // Создаем пример файла
+            var fileContent = new StringContent("This is a test file content");
+            fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("text/plain");
+            form.Add(fileContent, "file", "test.txt");
 
-            // Act
-            var response = await _client.PostAsync("/api/file/upload", formData);
-
-            // Assert
-            response.EnsureSuccessStatusCode();  // 200-299
+            // Предположим, эндпоинт загрузки файла — /api/file/upload
+            var response = await _client.PostAsync("/api/file/upload", form);
+            response.EnsureSuccessStatusCode();
         }
     }
 }
