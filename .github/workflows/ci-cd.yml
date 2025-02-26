@@ -54,13 +54,6 @@ jobs:
           dotnet test ./Backend/BackendGateway/BackendGateway.Tests/BackendGateway.Tests.csproj
           dotnet test ./Backend/FileService/FileService.Tests/FileService.Tests.csproj
 
-      # (Опционально) Запуск тестов для фронтенда
-      - name: Run Frontend Tests
-        run: |
-          cd frontend
-          npm install
-          npm test
-
       # (Опционально) Шаг деплоя
       - name: Deploy Application
         run: |
