@@ -37,8 +37,8 @@ namespace BackendGateway.Controllers
         {
             string targetUrl = service.ToLower() switch
             {
-                "auth" => $"http://localhost:5001/api/auth/{path}",
-                "file" => $"http://localhost:5002/api/file/{path}",
+                "auth" => $"http://authservice/api/auth/{path}",
+                "file" => $"http://fileservice/api/file/{path}",
                 _ => null
             };
 
@@ -62,8 +62,8 @@ namespace BackendGateway.Controllers
         {
             string targetUrl = service.ToLower() switch
             {
-                "auth" => $"http://localhost:5001/api/auth/{path}",
-                "file" => $"http://localhost:5002/api/file/{path}",
+                "auth" => $"http://authservice/api/auth/{path}",
+                "file" => $"http://fileservice/api/file/{path}",
                 _ => null
             };
 

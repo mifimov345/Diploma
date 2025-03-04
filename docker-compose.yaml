@@ -8,6 +8,8 @@ services:
     image: mifimov345/authservice:latest
     ports:
       - "5000:80"
+    environment:
+      - ASPNETCORE_URLS=http://+:80
 
   backendgateway:
     build:
@@ -16,6 +18,8 @@ services:
     image: mifimov345/backendgateway:latest
     ports:
       - "5001:80"
+    environment:
+      - ASPNETCORE_URLS=http://+:80
 
   fileservice:
     build:
@@ -24,6 +28,8 @@ services:
     image: mifimov345/fileservice:latest
     ports:
       - "5002:80"
+    environment:
+      - ASPNETCORE_URLS=http://+:80
 
   frontend:
     build:
