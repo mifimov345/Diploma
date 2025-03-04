@@ -3,14 +3,6 @@
   "WorkspaceRootPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice.tests\\authcontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|solutionrelative:authservice.tests\\authcontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice.tests\\customwebapplicationfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|solutionrelative:authservice.tests\\customwebapplicationfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -19,12 +11,20 @@
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\controllers\\authservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice.tests\\authservice.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|solutionrelative:authservice.tests\\authservice.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\authservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\authservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice.tests\\authcontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|solutionrelative:authservice.tests\\authcontrollertests.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice.tests\\customwebapplicationfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|solutionrelative:authservice.tests\\customwebapplicationfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice.tests\\authservice.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{43432375-A97D-4BFF-B09A-C66508ECF3D0}|AuthService.Tests\\AuthService.Tests.csproj|solutionrelative:authservice.tests\\authservice.tests.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\authservice.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
@@ -46,7 +46,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 8,
+          "SelectedChildIndex": 10,
           "Children": [
             {
               "$type": "Bookmark",
@@ -62,7 +62,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "CustomWebApplicationFactory.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService.Tests\\CustomWebApplicationFactory.cs",
               "RelativeDocumentMoniker": "AuthService.Tests\\CustomWebApplicationFactory.cs",
@@ -74,15 +74,16 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 2,
               "Title": "AuthService.csproj",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj",
               "RelativeDocumentMoniker": "AuthService\\AuthService.csproj",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj",
               "RelativeToolTip": "AuthService\\AuthService.csproj",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAgAAAAEAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAoAAAAgAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-02-25T19:15:22.183Z"
+              "WhenOpened": "2025-02-25T19:15:22.183Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -93,7 +94,8 @@
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\AuthService.csproj",
               "RelativeToolTip": "AuthService\\AuthService.csproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-02-25T19:05:11.509Z"
+              "WhenOpened": "2025-02-25T19:05:11.509Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -109,7 +111,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "AuthService.Tests.csproj",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService.Tests\\AuthService.Tests.csproj",
               "RelativeDocumentMoniker": "AuthService.Tests\\AuthService.Tests.csproj",
@@ -117,17 +119,18 @@
               "RelativeToolTip": "AuthService.Tests\\AuthService.Tests.csproj",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAAIAAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-02-25T19:04:15.266Z"
+              "WhenOpened": "2025-02-25T19:04:15.266Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "AuthControllerTests.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService.Tests\\AuthControllerTests.cs",
               "RelativeDocumentMoniker": "AuthService.Tests\\AuthControllerTests.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService.Tests\\AuthControllerTests.cs",
               "RelativeToolTip": "AuthService.Tests\\AuthControllerTests.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA0AAAApAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAgAAAAoAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-02-25T17:00:13.982Z",
               "EditorCaption": ""
@@ -146,27 +149,29 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 0,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Program.cs",
               "RelativeDocumentMoniker": "AuthService\\Program.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Program.cs",
               "RelativeToolTip": "AuthService\\Program.cs",
-              "ViewState": "AQIAACEAAAAAAAAAAAAAwC0AAAAgAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA0AAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-25T12:23:23.911Z"
+              "WhenOpened": "2025-02-25T12:23:23.911Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "AuthService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Controllers\\AuthService.cs",
               "RelativeDocumentMoniker": "AuthService\\Controllers\\AuthService.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Controllers\\AuthService.cs",
               "RelativeToolTip": "AuthService\\Controllers\\AuthService.cs",
-              "ViewState": "AQIAABwAAAAAAAAAAAAgwCkAAAAAAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABoAAAASAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-01-14T19:37:35.809Z"
+              "WhenOpened": "2025-01-14T19:37:35.809Z",
+              "EditorCaption": ""
             }
           ]
         }

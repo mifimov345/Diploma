@@ -422,3 +422,5 @@ C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService\
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService\obj\Debug\net8.0\AuthService.pdb
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService\obj\Debug\net8.0\AuthService.genruntimeconfig.cache
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService\obj\Debug\net8.0\ref\AuthService.dll
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService\bin\Debug\net8.0\AuthService.xml
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\AuthService\AuthService\obj\Debug\net8.0\AuthService.xml

@@ -332,3 +332,5 @@ C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\BackendGateway\BackendGa
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\BackendGateway\BackendGateway\bin\Debug\net8.0\refs\System.Xml.XPath.dll
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\BackendGateway\BackendGateway\bin\Debug\net8.0\refs\System.Xml.XPath.XDocument.dll
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\BackendGateway\BackendGateway\bin\Debug\net8.0\refs\WindowsBase.dll
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\BackendGateway\BackendGateway\bin\Debug\net8.0\BackendGateway.xml
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\BackendGateway\BackendGateway\obj\Debug\net8.0\BackendGateway.xml

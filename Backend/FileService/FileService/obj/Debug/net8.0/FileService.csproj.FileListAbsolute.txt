@@ -332,3 +332,5 @@ C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\FileService\FileService\
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\FileService\FileService\bin\Debug\net8.0\refs\System.Xml.XPath.dll
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\FileService\FileService\bin\Debug\net8.0\refs\System.Xml.XPath.XDocument.dll
 C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\FileService\FileService\bin\Debug\net8.0\refs\WindowsBase.dll
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\FileService\FileService\bin\Debug\net8.0\FileService.xml
+C:\Users\mifim\Desktop\DiplomaApp\abvgd\Diploma\Backend\FileService\FileService\obj\Debug\net8.0\FileService.xml

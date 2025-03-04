@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>FileService</name>
+    </assembly>
+    <members>
+        <member name="T:FileService.Controllers.FileController">
+            <summary>
+            Контроллер для загрузки файлов и демонстрации CRUD-операций с сущностью Item.
+            </summary>
+        </member>
+        <member name="M:FileService.Controllers.FileController.UploadFile(FileService.Controllers.FileUploadModel)">
+            <summary>
+            Загружает файл на сервер.
+            </summary>
+            <param name="model">Модель, содержащая загружаемый файл.</param>
+            <returns>
+            При успешной загрузке возвращает статус 200 OK с информацией о файле (имя и путь).
+            Если файл не передан или пустой, возвращает 400 Bad Request.
+            </returns>
+            <remarks>
+            Для загрузки файла используйте формат multipart/form-data.
+            </remarks>
+        </member>
+        <member name="M:FileService.Controllers.FileController.GetItems">
+            <summary>
+            Возвращает список всех элементов.
+            </summary>
+            <returns>Список элементов в формате JSON.</returns>
+        </member>
+        <member name="M:FileService.Controllers.FileController.GetItem(System.Int32)">
+            <summary>
+            Возвращает элемент по его идентификатору.
+            </summary>
+            <param name="id">Идентификатор элемента.</param>
+            <returns>Элемент, если найден; иначе 404 Not Found.</returns>
+        </member>
+        <member name="M:FileService.Controllers.FileController.CreateItem(FileService.Controllers.Item)">
+            <summary>
+            Создаёт новый элемент.
+            </summary>
+            <param name="newItem">Новый элемент для создания.</param>
+            <returns>
+            При успешном создании возвращает статус 201 Created с созданным объектом.
+            </returns>
+        </member>
+        <member name="M:FileService.Controllers.FileController.UpdateItem(System.Int32,FileService.Controllers.Item)">
+            <summary>
+            Обновляет существующий элемент.
+            </summary>
+            <param name="id">Идентификатор элемента, который нужно обновить.</param>
+            <param name="updatedItem">Объект с обновлёнными данными.</param>
+            <returns>
+            При успешном обновлении возвращает статус 204 No Content; если элемент не найден – 404 Not Found.
+            </returns>
+        </member>
+        <member name="M:FileService.Controllers.FileController.DeleteItem(System.Int32)">
+            <summary>
+            Удаляет элемент по его идентификатору.
+            </summary>
+            <param name="id">Идентификатор элемента для удаления.</param>
+            <returns>
+            При успешном удалении возвращает статус 204 No Content; если элемент не найден – 404 Not Found.
+            </returns>
+        </member>
+        <member name="T:FileService.Controllers.FileUploadModel">
+            <summary>
+            Модель для загрузки файла.
+            </summary>
+        </member>
+        <member name="P:FileService.Controllers.FileUploadModel.File">
+            <summary>
+            Файл, переданный через форму (тип IFormFile позволяет работать с multipart/form-data).
+            </summary>
+        </member>
+        <member name="T:FileService.Controllers.Item">
+            <summary>
+            Сущность для демонстрации CRUD-операций.
+            </summary>
+        </member>
+        <member name="P:FileService.Controllers.Item.Id">
+            <summary>
+            Идентификатор элемента.
+            </summary>
+        </member>
+        <member name="P:FileService.Controllers.Item.Name">
+            <summary>
+            Название элемента.
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -4,9 +4,16 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Регистрация контроллеров
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Отключаем преобразование имён в camelCase
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
+
+
+// Настройка аутентификации с использованием JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -16,18 +23,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,              // Проверка аудитории токена
             ValidateLifetime = true,              // Проверка срока действия токена
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes("c036fd2a60b5cb97b364182eff8123f6")), // Секретный ключ
-            ClockSkew = TimeSpan.Zero            // Нет дополнительного времени для токенов (опционально)
+            ClockSkew = TimeSpan.Zero             // Отсутствие дополнительного временного окна для токенов
         };
     });
 
 builder.Services.AddControllers();
 
+// Регистрация генерации документации Swagger и UI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
+builder.Services.AddSwaggerGen(options =>
+{
+    // Определяем путь к XML-документации
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+});
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// В режиме разработки активируется Swagger UI для тестирования API
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -41,6 +54,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-
 
 public partial class Program { }

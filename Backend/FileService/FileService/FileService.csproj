@@ -8,7 +8,8 @@
 	<UserSecretsId>97b8ba07-07db-44fb-8e2f-ce331fd0d780</UserSecretsId>
 	<PreserveCompilationContext>true</PreserveCompilationContext>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-
+	<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	<NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

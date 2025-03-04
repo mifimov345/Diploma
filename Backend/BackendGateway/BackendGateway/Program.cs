@@ -1,16 +1,29 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Регистрация контроллеров и клиента для отправки HTTP-запросов
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Отключаем преобразование имён в camelCase
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
-builder.Services.AddControllers();
 builder.Services.AddHttpClient();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Регистрация генерации документации Swagger и UI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Определяем путь к XML-документации
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+});
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// В режиме разработки активируется Swagger UI для тестирования API
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>BackendGateway</name>
+    </assembly>
+    <members>
+        <member name="T:BackendGateway.Controllers.GatewayController">
+            <summary>
+            Контроллер-шлюз для переадресации запросов к другим сервисам.
+            </summary>
+        </member>
+        <member name="M:BackendGateway.Controllers.GatewayController.#ctor(System.Net.Http.IHttpClientFactory)">
+            <summary>
+            Конструктор, принимающий фабрику HTTP-клиентов для создания клиента.
+            </summary>
+            <param name="httpClientFactory">Фабрика HTTP-клиентов.</param>
+        </member>
+        <member name="M:BackendGateway.Controllers.GatewayController.ForwardGet(System.String,System.String)">
+            <summary>
+            Переадресует GET-запрос к целевому сервису.
+            </summary>
+            <param name="service">Название сервиса ("auth" или "file").</param>
+            <param name="path">Путь внутри сервиса, к которому будет переадресован запрос.</param>
+            <returns>Возвращает содержимое ответа от целевого сервиса.</returns>
+            <remarks>
+            Пример вызова:
+            GET: <c>api/gateway/auth/login</c> – переадресация запроса к AuthService.
+            </remarks>
+        </member>
+        <member name="M:BackendGateway.Controllers.GatewayController.ForwardPost(System.String,System.String,System.Object)">
+            <summary>
+            Переадресует POST-запрос с передачей payload к целевому сервису.
+            </summary>
+            <param name="service">Название сервиса ("auth" или "file").</param>
+            <param name="path">Путь внутри сервиса, к которому будет переадресован запрос.</param>
+            <param name="payload">Объект данных, передаваемый в теле запроса.</param>
+            <returns>Возвращает содержимое ответа от целевого сервиса.</returns>
+        </member>
+    </members>
+</doc>

@@ -4,18 +4,30 @@ using System.Threading.Tasks;
 
 namespace FileService.Controllers
 {
+    /// <summary>
+    /// Контроллер для загрузки файлов и демонстрации CRUD-операций с сущностью Item.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public class FileController : ControllerBase
     {
-        // POST: api/file/upload
+        /// <summary>
+        /// Загружает файл на сервер.
+        /// </summary>
+        /// <param name="model">Модель, содержащая загружаемый файл.</param>
+        /// <returns>
+        /// При успешной загрузке возвращает статус 200 OK с информацией о файле (имя и путь).
+        /// Если файл не передан или пустой, возвращает 400 Bad Request.
+        /// </returns>
+        /// <remarks>
+        /// Для загрузки файла используйте формат multipart/form-data.
+        /// </remarks>
         [HttpPost("upload")]
         public async Task<IActionResult> UploadFile([FromForm] FileUploadModel model)
         {
             if (model.File == null || model.File.Length == 0)
                 return BadRequest("No file uploaded.");
 
-            // Папка для сохранения файлов (на сервере)
             var uploads = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
             if (!Directory.Exists(uploads))
                 Directory.CreateDirectory(uploads);
@@ -28,16 +40,21 @@ namespace FileService.Controllers
             return Ok(new { fileName = model.File.FileName, filePath });
         }
 
-        // Пример дополнительных эндпоинтов для демонстрации API (GET, PUT, DELETE)
-        // Создадим сущность Item для демонстрации CRUD операций
-
+        // Статический список для хранения элементов.
         private static readonly List<Item> Items = new();
 
-        // GET: api/file/items
+        /// <summary>
+        /// Возвращает список всех элементов.
+        /// </summary>
+        /// <returns>Список элементов в формате JSON.</returns>
         [HttpGet("items")]
         public IActionResult GetItems() => Ok(Items);
 
-        // GET: api/file/items/{id}
+        /// <summary>
+        /// Возвращает элемент по его идентификатору.
+        /// </summary>
+        /// <param name="id">Идентификатор элемента.</param>
+        /// <returns>Элемент, если найден; иначе 404 Not Found.</returns>
         [HttpGet("items/{id}")]
         public IActionResult GetItem(int id)
         {
@@ -45,7 +62,13 @@ namespace FileService.Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
-        // POST: api/file/items
+        /// <summary>
+        /// Создаёт новый элемент.
+        /// </summary>
+        /// <param name="newItem">Новый элемент для создания.</param>
+        /// <returns>
+        /// При успешном создании возвращает статус 201 Created с созданным объектом.
+        /// </returns>
         [HttpPost("items")]
         public IActionResult CreateItem([FromBody] Item newItem)
         {
@@ -54,7 +77,14 @@ namespace FileService.Controllers
             return CreatedAtAction(nameof(GetItem), new { id = newItem.Id }, newItem);
         }
 
-        // PUT: api/file/items/{id}
+        /// <summary>
+        /// Обновляет существующий элемент.
+        /// </summary>
+        /// <param name="id">Идентификатор элемента, который нужно обновить.</param>
+        /// <param name="updatedItem">Объект с обновлёнными данными.</param>
+        /// <returns>
+        /// При успешном обновлении возвращает статус 204 No Content; если элемент не найден – 404 Not Found.
+        /// </returns>
         [HttpPut("items/{id}")]
         public IActionResult UpdateItem(int id, [FromBody] Item updatedItem)
         {
@@ -65,7 +95,13 @@ namespace FileService.Controllers
             return NoContent();
         }
 
-        // DELETE: api/file/items/{id}
+        /// <summary>
+        /// Удаляет элемент по его идентификатору.
+        /// </summary>
+        /// <param name="id">Идентификатор элемента для удаления.</param>
+        /// <returns>
+        /// При успешном удалении возвращает статус 204 No Content; если элемент не найден – 404 Not Found.
+        /// </returns>
         [HttpDelete("items/{id}")]
         public IActionResult DeleteItem(int id)
         {
@@ -76,14 +112,29 @@ namespace FileService.Controllers
         }
     }
 
+    /// <summary>
+    /// Модель для загрузки файла.
+    /// </summary>
     public class FileUploadModel
     {
+        /// <summary>
+        /// Файл, переданный через форму (тип IFormFile позволяет работать с multipart/form-data).
+        /// </summary>
         public Microsoft.AspNetCore.Http.IFormFile File { get; set; }
     }
 
+    /// <summary>
+    /// Сущность для демонстрации CRUD-операций.
+    /// </summary>
     public class Item
     {
+        /// <summary>
+        /// Идентификатор элемента.
+        /// </summary>
         public int Id { get; set; }
+        /// <summary>
+        /// Название элемента.
+        /// </summary>
         public string Name { get; set; }
     }
 }
