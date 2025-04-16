@@ -1,21 +1,16 @@
-# Этап сборки
-FROM node:18 AS build
-
+FROM node:18-alpine AS build-stage
 WORKDIR /app
-
-# Копируем package.json и package-lock.json из текущей директории (frontend)
-COPY package.json package-lock.json ./
+COPY package*.json ./
 RUN npm install
-
-# Копируем оставшиеся файлы
 COPY . .
 RUN npm run build
 
-# Этап выполнения
-FROM nginx:alpine
+FROM nginx:stable-alpine AS production-stage
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
+COPY --from=build-stage /app/dist .
 
-# Копируем сгенерированный билд из /app/dist в каталог nginx
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

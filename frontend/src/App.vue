@@ -1,16 +1,20 @@
 <template>
-  <div id="app">
-    <FileUpload />
+  <div id="app-container">
+    <router-view />
   </div>
 </template>
 
 <script>
-import FileUpload from "./components/FileUpload.vue";
-
 export default {
-  name: "App",
-  components: {
-    FileUpload,
-  },
-};
+  name: 'App'
+}
 </script>
+
+<style>
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+#app-container {
+}
+</style>

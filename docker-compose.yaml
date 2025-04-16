@@ -3,38 +3,74 @@ version: '3.8'
 services:
   authservice:
     build:
-      context: ./Backend/AuthService
+      context: ./Backend/AuthService # Убедитесь, что путь правильный
       dockerfile: Dockerfile
-    image: mifimov345/authservice:latest
+    # image: mifimov345/authservice:latest # Можно оставить или использовать локальную сборку
     ports:
-      - "5000:80"
+      - "5001:80" # Изменил порт на 5001, чтобы не конфликтовать со шлюзом
     environment:
       - ASPNETCORE_URLS=http://+:80
-
-  backendgateway:
-    build:
-      context: ./Backend/BackendGateway
-      dockerfile: Dockerfile
-    image: mifimov345/backendgateway:latest
-    ports:
-      - "5001:80"
-    environment:
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_ENVIRONMENT=Development # Или Production
+      - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set} # Используем переменные из .env
+      - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
+      - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
+    networks:
+      - myapp-network # Добавляем сеть
 
   fileservice:
     build:
-      context: ./Backend/FileService
+      context: ./Backend/FileService # Убедитесь, что путь правильный
       dockerfile: Dockerfile
-    image: mifimov345/fileservice:latest
+    # image: mifimov345/fileservice:latest
     ports:
       - "5002:80"
     environment:
       - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set} # Те же переменные
+      - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
+      - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
+    volumes:
+      - fileservice-uploads:/app/uploads # Создаем volume для хранения файлов
+    networks:
+      - myapp-network # Добавляем сеть
+    depends_on: # Убедимся, что authservice может быть доступен (хотя бы для старта)
+      - authservice
+
+  backendgateway:
+    build:
+      context: ./Backend/BackendGateway # Убедитесь, что путь правильный
+      dockerfile: Dockerfile
+    # image: mifimov345/backendgateway:latest
+    ports:
+      - "5000:80" # Шлюз будет на порту 5000
+    environment:
+      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_ENVIRONMENT=Development
+      # Можно передать URL сервисов через env, если нужно
+      # - ServiceUrls__Auth=http://authservice
+      # - ServiceUrls__File=http://fileservice
+    networks:
+      - myapp-network # Добавляем сеть
+    depends_on:
+      - authservice
+      - fileservice
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    image: mifimov345/frontend:latest
+      context: ./frontend # Убедитесь, что путь к папке фронтенда правильный
+      dockerfile: Dockerfile # Используем новый Dockerfile
+    # image: mifimov345/frontend:latest # Можно оставить или использовать локальную сборку
     ports:
-      - "8080:80"
+      - "8080:80" # Порт Nginx внутри контейнера 80
+    networks:
+      - myapp-network # Добавляем сеть
+    depends_on:
+      - backendgateway # Фронтенд зависит от шлюза
+
+volumes: # Определяем volume для хранения загруженных файлов
+  fileservice-uploads:
+
+networks: # Определяем общую сеть для взаимодействия сервисов
+  myapp-network:
+    driver: bridge
