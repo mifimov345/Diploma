@@ -206,6 +206,7 @@ methods: {
               }
               this.error = deleteError;
          } finally {
+          //empty
          }
      },
     },

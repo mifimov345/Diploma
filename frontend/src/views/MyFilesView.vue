@@ -75,6 +75,7 @@
           const response = await axios.get('/api/file/files');
           this.files = response.data;
           if (this.files.length === 0) {
+            //nothing
           }
         } catch (err) {
           console.error('Error fetching my files:', err);
