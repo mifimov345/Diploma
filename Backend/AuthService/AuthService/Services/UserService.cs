@@ -26,6 +26,8 @@ namespace AuthService.Services
         User GetByUsername(string username);
         void UpdateUserGroups(int userId, List<string> groupNames);
         void DeleteUser(int userId, int deletedById, string deletedByRole);
+        void UpdateUsername(int userIdToUpdate, string newUsername, int currentUserId, string currentUserRole);
+        void UpdatePassword(int userIdToUpdate, string newPassword, int currentUserId, string currentUserRole);
 
         IEnumerable<string> GetAllGroupNames();
         bool CreateGroup(string groupName);
@@ -277,6 +279,71 @@ namespace AuthService.Services
         {
             if (string.IsNullOrEmpty(password) || string.IsNullOrEmpty(storedHash)) return false;
             return HashPassword(password) == storedHash;
+        }
+
+        public void UpdateUsername(int userIdToUpdate, string newUsername, int currentUserId, string currentUserRole)
+        {
+            if (string.IsNullOrWhiteSpace(newUsername))
+                throw new ArgumentException("New username cannot be empty.", nameof(newUsername));
+
+            var userToUpdate = GetById(userIdToUpdate);
+            if (userToUpdate == null)
+                throw new KeyNotFoundException($"User with ID {userIdToUpdate} not found.");
+
+            // Проверка на уникальность нового имени пользователя (игнорируя самого пользователя)
+            if (_users.Any(u => u.Id != userIdToUpdate && u.Username.Equals(newUsername, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException($"Username '{newUsername}' is already taken.");
+
+            // Проверка прав
+            CheckUpdatePermissions(userToUpdate, currentUserId, currentUserRole, "update username");
+
+            // Обновляем имя
+            userToUpdate.Username = newUsername;
+            Console.WriteLine($"--- UserService: Updated username for User ID {userIdToUpdate} to '{newUsername}' by User ID {currentUserId}");
+        }
+
+        public void UpdatePassword(int userIdToUpdate, string newPassword, int currentUserId, string currentUserRole)
+        {
+            if (string.IsNullOrWhiteSpace(newPassword))
+                throw new ArgumentException("New password cannot be empty.", nameof(newPassword));
+
+            var userToUpdate = GetById(userIdToUpdate);
+            if (userToUpdate == null)
+                throw new KeyNotFoundException($"User with ID {userIdToUpdate} not found.");
+
+            CheckUpdatePermissions(userToUpdate, currentUserId, currentUserRole, "update password");
+
+            userToUpdate.PasswordHash = HashPassword(newPassword);
+            Console.WriteLine($"--- UserService: Updated password for User ID {userIdToUpdate} by User ID {currentUserId}");
+        }
+
+        private void CheckUpdatePermissions(User userToModify, int currentUserId, string currentUserRole, string action)
+        {
+            if (userToModify.Id == currentUserId)
+                throw new InvalidOperationException($"Users cannot {action} for themselves through this method.");
+
+            if (userToModify.Role == Roles.SuperAdmin)
+                throw new UnauthorizedAccessException($"Cannot {action} for a SuperAdmin.");
+
+            if (currentUserRole == Roles.SuperAdmin)
+            {
+                if (userToModify.Role == Roles.Admin || userToModify.Role == Roles.User)
+                    return;
+            }
+            else if (currentUserRole == Roles.Admin)
+            {
+                if (userToModify.Role == Roles.User)
+                {
+                    var admin = GetById(currentUserId);
+                    bool isInAdminGroup = userToModify.Groups.Any(ug => admin?.Groups?.Contains(ug) ?? false);
+                    if (isInAdminGroup)
+                        return;
+                    else
+                        throw new UnauthorizedAccessException($"Admin can only {action} for users within their groups.");
+                }
+            }
+
+            throw new UnauthorizedAccessException($"Insufficient permissions to {action} for user ID {userToModify.Id}.");
         }
     }
 }

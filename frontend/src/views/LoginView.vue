@@ -61,12 +61,18 @@
             });
             console.log('>>> LOGIN RESPONSE RAW DATA:', response.data);
 
-            const { Token, Role, Groups, Username } = response.data;
+            const { Token, Role, Groups, Username, Id } = response.data;
+            console.log(">>> Extracted Id from response:", Id); // Проверяем извлеченное значение
+
             localStorage.setItem("jwtToken", Token);
             localStorage.setItem("userRole", Role);
             localStorage.setItem("username", Username);
             localStorage.setItem("userGroups", JSON.stringify(Groups || []));
+            localStorage.setItem("userId", Id);
+            console.log("Saving userId to localStorage:", Id); // <-- Оставьте этот лог для проверки
 
+            console.log(">>> Saved userId:", Id); // Лог перед чтением
+            console.log(">>> Read userId from localStorage immediately:", localStorage.getItem('userId'));
             console.log("LOGIN: Attempting to set token:", Token);
             console.log("LOGIN: Token READ from localStorage after set:", localStorage.getItem('jwtToken'));
 

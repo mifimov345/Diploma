@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "pptx2html": "^0.3.4",
     "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "eslint-plugin-vue": "^10.0.0"
   }
 }

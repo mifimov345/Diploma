@@ -74,7 +74,6 @@ export default {
         const resp = await axios.get(apiUrl, {
           responseType: "blob"
         });
-
         const url = window.URL.createObjectURL(new Blob([resp.data]));
         const link = document.createElement("a");
         link.href = url;

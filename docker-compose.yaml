@@ -3,74 +3,100 @@ version: '3.8'
 services:
   authservice:
     build:
-      context: ./Backend/AuthService # Убедитесь, что путь правильный
+      context: ./Backend/AuthService
       dockerfile: Dockerfile
-    # image: mifimov345/authservice:latest # Можно оставить или использовать локальную сборку
     ports:
-      - "5001:80" # Изменил порт на 5001, чтобы не конфликтовать со шлюзом
+      - "5001:80"
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development # Или Production
-      - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set} # Используем переменные из .env
+      - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set}
       - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
       - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
+      # Добавим URL фронтенда для CORS, если нужно в AuthService
+      # - FrontendUrl=${FRONTEND_URL?Error - FRONTEND_URL is not set}
     networks:
-      - myapp-network # Добавляем сеть
+      - myapp-network
 
   fileservice:
     build:
-      context: ./Backend/FileService # Убедитесь, что путь правильный
+      context: ./Backend/FileService
       dockerfile: Dockerfile
-    # image: mifimov345/fileservice:latest
     ports:
       - "5002:80"
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
-      - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set} # Те же переменные
+      - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set}
       - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
       - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
+      - FrontendUrl=${FRONTEND_URL?Error - FRONTEND_URL is not set} # Для CORS
     volumes:
-      - fileservice-uploads:/app/uploads # Создаем volume для хранения файлов
+      - fileservice-uploads:/app/uploads # Хранение файлов
     networks:
-      - myapp-network # Добавляем сеть
-    depends_on: # Убедимся, что authservice может быть доступен (хотя бы для старта)
+      - myapp-network
+    depends_on:
       - authservice
 
-  backendgateway:
+  # --- НОВЫЙ СЕРВИС ПОИСКА ---
+  searchservice:
     build:
-      context: ./Backend/BackendGateway # Убедитесь, что путь правильный
+      context: ./Backend/SearchService # Укажите правильный путь
       dockerfile: Dockerfile
-    # image: mifimov345/backendgateway:latest
     ports:
-      - "5000:80" # Шлюз будет на порту 5000
+      - "5003:80" # Новый внешний порт для отладки (можно убрать потом)
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
-      # Можно передать URL сервисов через env, если нужно
-      # - ServiceUrls__Auth=http://authservice
-      # - ServiceUrls__File=http://fileservice
+      # Путь к индексу Lucene внутри контейнера
+      - LuceneIndexPath=/app/lucene_index
+      # Возможно, URL FileService для скачивания
+      # - FileServiceInternalUrl=http://fileservice/api/file/internal/download/
+    volumes:
+      # Volume для хранения индекса Lucene
+      - searchservice-index:/app/lucene_index
     networks:
-      - myapp-network # Добавляем сеть
+      - myapp-network
+    depends_on: # Зависит от FileService для скачивания
+      - fileservice
+  # --- КОНЕЦ СЕРВИСА ПОИСКА ---
+
+  backendgateway:
+    build:
+      context: ./Backend/BackendGateway
+      dockerfile: Dockerfile
+    ports:
+      - "5000:80" # Основной порт шлюза
+    environment:
+      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_ENVIRONMENT=Development
+    networks:
+      - myapp-network
     depends_on:
       - authservice
       - fileservice
+      - searchservice # Добавляем зависимость от нового сервиса
 
   frontend:
     build:
-      context: ./frontend # Убедитесь, что путь к папке фронтенда правильный
-      dockerfile: Dockerfile # Используем новый Dockerfile
-    # image: mifimov345/frontend:latest # Можно оставить или использовать локальную сборку
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "8080:80" # Порт Nginx внутри контейнера 80
+      - "8080:80" # Порт Nginx
+    environment:
+      # Передаем URL шлюза в Nginx для возможных прокси или в переменные JS
+      - API_BASE_URL=http://backendgateway # Имя сервиса шлюза
+      # Можно использовать VUE_APP_... для передачи в JS при сборке,
+      # но проще настроить Axios на относительный URL шлюза (localhost:5000)
     networks:
-      - myapp-network # Добавляем сеть
+      - myapp-network
     depends_on:
-      - backendgateway # Фронтенд зависит от шлюза
+      - backendgateway
 
-volumes: # Определяем volume для хранения загруженных файлов
+volumes:
   fileservice-uploads:
+  searchservice-index: # Volume для индекса
 
-networks: # Определяем общую сеть для взаимодействия сервисов
+networks:
   myapp-network:
     driver: bridge

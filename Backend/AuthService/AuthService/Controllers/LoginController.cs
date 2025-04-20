@@ -58,7 +58,8 @@ namespace AuthService.Controllers
                     Token = token,
                     Username = user.Username,
                     Role = user.Role,
-                    Groups = user.Groups ?? new List<string>()
+                    Groups = user.Groups ?? new List<string>(),
+                    Id = user.Id
                 };
 
                 _logger.LogInformation("Login successful for user: {Username}, Role: {Role}", responseData.Username, responseData.Role);

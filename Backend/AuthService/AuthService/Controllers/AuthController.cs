@@ -363,8 +363,71 @@ namespace AuthService.Controllers
                 return StatusCode(500, new { message = $"An error occurred while deleting group '{groupName}'. Check server logs." }); // 500 Internal Server Error
             }
         }
+        [HttpPut("users/{id}/username")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
+        public IActionResult UpdateUsername(int id, [FromBody] UpdateUsernameModel model)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+
+            try
+            {
+                _userService.UpdateUsername(id, model.NewUsername, currentUserId, currentUserRole);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating username for user ID {UserId}", id);
+                return StatusCode(500, "An internal error occurred.");
+            }
+        }
+
+        // --- Обновление пароля пользователя ---
+        [HttpPut("users/{id}/password")]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
+        public IActionResult UpdatePassword(int id, [FromBody] UpdatePasswordModel model)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+
+            try
+            {
+                _userService.UpdatePassword(id, model.NewPassword, currentUserId, currentUserRole);
+                return NoContent();
+            }
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating password for user ID {UserId}", id);
+                return StatusCode(500, "An internal error occurred.");
+            }
+        }
     }
 
+    public class UpdateUsernameModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(3)]
+        public string NewUsername { get; set; }
+    }
+
+    public class UpdatePasswordModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(6)]
+        public string NewPassword { get; set; }
+    }
 
     public class CreateUserModel
     {

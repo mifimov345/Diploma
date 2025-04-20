@@ -2,71 +2,63 @@
   <div class="admin-user-management">
     <h2>Управление пользователями</h2>
 
+    <!-- Форма создания -->
     <section v-if="canCreateUsers" class="create-user-section">
-      <h3>{{ isSuperAdmin ? 'Создать пользователя или администратора' : 'Создать нового пользователя' }}</h3>
-      <form @submit.prevent="createUser" class="create-user-form">
-        <div class="form-row">
-            <div class="form-group">
-              <label for="new-username">Имя пользователя:</label>
-              <input id="new-username" v-model="newUser.username" required :disabled="isLoading" placeholder="Логин"/>
-            </div>
-            <div class="form-group">
-              <label for="new-password">Пароль:</label>
-              <input
-                id="new-password"
-                type="password"
-                v-model="newUser.password"
-                required
-                :disabled="isLoading"
-                placeholder="Минимум 6 символов"
-                minlength="6"
-                />
-              <small v-if="newUser.password && newUser.password.length < 6" class="input-error">
-                Пароль должен быть не менее 6 символов.
-              </small>
-            </div>
-        </div>
-         <div v-if="isSuperAdmin" class="form-row">
-            <div class="form-group">
-              <label for="new-role">Роль:</label>
-              <select id="new-role" v-model="newUser.role" required :disabled="isLoading">
-                <option value="User">User (Пользователь)</option>
-                <option value="Admin">Admin (Администратор)</option>
-              </select>
-            </div>
+       <h3>{{ isSuperAdmin ? 'Создать пользователя или администратора' : 'Создать нового пользователя' }}</h3>
+       <form @submit.prevent="createUser" class="create-user-form">
+         <!-- Имя и Пароль -->
+         <div class="form-row">
+             <div class="form-group">
+               <label for="new-username">Имя пользователя:</label>
+               <input id="new-username" v-model="newUser.username" required :disabled="isLoading" placeholder="Логин"/>
+             </div>
+             <div class="form-group">
+               <label for="new-password">Пароль:</label>
+               <input id="new-password" type="password" v-model="newUser.password" required :disabled="isLoading" placeholder="Надежный пароль"/>
+             </div>
          </div>
+         <!-- Роль (только для ВА) -->
           <div v-if="isSuperAdmin" class="form-row">
-             <div class="form-group full-width">
-                <label for="new-groups">Группы:</label>
-                 <div v-if="availableGroups.length > 0" class="checkbox-group">
-                     <label v-for="group in availableGroups" :key="group" class="checkbox-label">
-                       <input
-                         type="checkbox"
-                         :value="group"
-                         v-model="newUser.groups"
-                         :disabled="isLoading"
-                       />
-                       {{ group }}
-                     </label>
-                 </div>
-                 <div v-else>
-                     <p>Сначала <router-link :to="{name: 'AdminGroups'}">создайте группы</router-link>.</p>
-                 </div>
-                 <small v-if="newUser.role === 'Admin'">*Администратору необходимо назначить хотя бы одну группу.</small>
+             <div class="form-group">
+               <label for="new-role">Роль:</label>
+               <select id="new-role" v-model="newUser.role" required :disabled="isLoading">
+                 <option value="User">User (Пользователь)</option>
+                 <option value="Admin">Admin (Администратор)</option>
+               </select>
+             </div>
+             <div class="form-group">
+                 <!-- Пустой блок для выравнивания или добавить другое поле -->
              </div>
           </div>
+          <!-- Группы (только для ВА, обязательны для Admin) -->
+           <div v-if="isSuperAdmin" class="form-row">
+              <div class="form-group full-width">
+                 <label>Группы:</label> <!-- Убрал for, т.к. нет одного input -->
+                  <div v-if="availableGroups.length > 0" class="checkbox-group">
+                      <label v-for="group in availableGroups" :key="group" class="checkbox-label">
+                        <input type="checkbox" :value="group" v-model="newUser.groups" :disabled="isLoading"/>
+                        {{ group }}
+                      </label>
+                  </div>
+                  <div v-else>
+                      <p>Сначала <router-link :to="{name: 'AdminGroups'}">создайте группы</router-link>.</p>
+                  </div>
+                  <small v-if="newUser.role === 'Admin'">*Администратору необходимо назначить хотя бы одну группу.</small>
+              </div>
+           </div>
+         <!-- Кнопка Создать -->
+         <button type="submit" :disabled="isLoading || (isSuperAdmin && newUser.role === 'Admin' && newUser.groups.length === 0)" class="create-button">
+           <span v-if="isLoading">Создание...</span>
+           <span v-else>Создать</span>
+         </button>
+       </form>
+        <!-- Сообщения -->
+        <div v-if="message" :class="['message', messageType]"> {{ message }} </div>
+        <div v-if="credsError" class="message error"> {{ credsError }} </div> <!-- Ошибка смены УЗ -->
+     </section>
+     <div v-else> <p>У вас недостаточно прав для создания пользователей.</p> </div>
 
-        <button type="submit" :disabled="isLoading || (isSuperAdmin && newUser.role === 'Admin' && newUser.groups.length === 0)" class="create-button">
-          <span v-if="isLoading">Создание...</span>
-          <span v-else>Создать</span>
-        </button>
-      </form>
-       <div v-if="message" :class="['message', messageType]"> {{ message }} </div>
-    </section>
-    <div v-else>
-        <p>У вас недостаточно прав для создания пользователей.</p>
-    </div>
-
+    <!-- Список существующих пользователей -->
     <section class="user-list-section">
       <h3>Существующие пользователи</h3>
       <button @click="fetchUsers" :disabled="isUserListLoading" class="refresh-button">
@@ -90,16 +82,17 @@
                 <td>{{ user.Id }}</td>
                 <td>{{ user.Username }}</td>
                 <td>{{ user.Role }}</td>
-                <td>{{ user.Groups.join(', ') || '-' }}</td>
+                <td>{{ user.Groups && user.Groups.length > 0 ? user.Groups.join(', ') : '-' }}</td>
                 <td v-if="isSuperAdmin">{{ user.CreatedByAdminId || '-' }}</td>
-                <td>
-                   <button v-if="isSuperAdmin && user.Role !== 'SuperAdmin'" @click="openEditGroupsModal(user)" class="action-button edit-button" title="Изменить группы">⚙️</button>
-                   <button
-                     v-if="canDeleteUser(user)"
-                     @click="deleteUser(user.Id, user.Username)"
-                     class="action-button delete-button"
-                     title="Удалить пользователя"
-                   >🗑️</button>
+                <td class="actions-cell">
+                   <!-- Редактирование групп (только ВА) -->
+                   <button v-if="canEditGroups(user)" @click="openEditGroupsModal(user)" class="action-button edit-button" title="Изменить группы">⚙️</button>
+                   <!-- Смена логина -->
+                   <button v-if="canEditCredentials(user)" @click="openChangeUsernameModal(user)" :disabled="isUpdatingCreds" class="action-button change-button" title="Сменить логин">👤</button>
+                   <!-- Смена пароля -->
+                   <button v-if="canEditCredentials(user)" @click="openChangePasswordModal(user)" :disabled="isUpdatingCreds" class="action-button change-button" title="Сменить пароль">🔑</button>
+                   <!-- Удаление -->
+                   <button v-if="canDeleteUser(user)" @click="deleteUser(user.Id, user.Username)" :disabled="isUpdatingCreds" class="action-button delete-button" title="Удалить пользователя">🗑️</button>
                 </td>
             </tr>
          </tbody>
@@ -107,32 +100,26 @@
        <div v-else-if="!isUserListLoading && !userListError">
            <p>Пользователи не найдены.</p>
        </div>
+        <div v-if="isUserListLoading" class="loading-indicator">Загрузка списка...</div>
     </section>
 
+    <!-- Модальное окно для редактирования групп (из пред. ответа) -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditGroupsModal">
         <div class="modal-content">
             <h4>Изменить группы для пользователя: {{ editingUser.Username }}</h4>
              <div v-if="availableGroups.length > 0" class="checkbox-group">
                  <label v-for="group in availableGroups" :key="group" class="checkbox-label">
-                   <input
-                     type="checkbox"
-                     :value="group"
-                     v-model="editingUserGroups"
-                     :disabled="isUpdatingGroups"
-                   />
+                   <input type="checkbox" :value="group" v-model="editingUserGroups" :disabled="isUpdatingGroups"/>
                    {{ group }}
                  </label>
              </div>
              <p v-else>Нет доступных групп.</p>
-             <p v-if="editingUser.Role === 'Admin' && editingUserGroups.length === 0" class="error-message">Администратор должен состоять хотя бы в одной группе!</p>
-
+             <p v-if="editingUser.Role === 'Admin' && editingUserGroups.length === 0" class="error-message small">Администратор должен состоять хотя бы в одной группе!</p>
              <div class="modal-actions">
-                 <button @click="updateUserGroups" :disabled="isUpdatingGroups || (editingUser.Role === 'Admin' && editingUserGroups.length === 0)" class="save-button">
-                    {{ isUpdatingGroups ? 'Сохранение...' : 'Сохранить'}}
-                 </button>
+                 <button @click="updateUserGroups" :disabled="isUpdatingGroups || (editingUser.Role === 'Admin' && editingUserGroups.length === 0)" class="save-button"> {{ isUpdatingGroups ? 'Сохранение...' : 'Сохранить'}} </button>
                  <button @click="closeEditGroupsModal" :disabled="isUpdatingGroups" class="cancel-button">Отмена</button>
              </div>
-             <div v-if="editGroupsError" class="error-message">{{ editGroupsError }}</div>
+             <div v-if="editGroupsError" class="error-message small">{{ editGroupsError }}</div>
         </div>
     </div>
 
@@ -146,55 +133,59 @@ export default {
   name: 'AdminUserManagement',
   data() {
     return {
-      newUser: {
-        username: '',
-        password: '',
-        role: 'User',
-        groups: [],
-      },
-      isLoading: false,
-      message: '',
-      messageType: 'success',
-      availableGroups: [],
+      // Форма создания
+      newUser: { username: '', password: '', role: 'User', groups: [] },
+      isLoading: false, // Для формы создания
+      message: '', messageType: 'success', // Общее сообщение формы
+      availableGroups: [], // Для селекторов/чекбоксов
 
+      // Список пользователей
       users: [],
-      isUserListLoading: false,
+      isUserListLoading: false, // Для списка
       userListError: '',
 
+      // Редактирование групп (модалка)
       showEditModal: false,
-      editingUser: null,
-      editingUserGroups: [],
-      isUpdatingGroups: false,
-      editGroupsError: '',
+      editingUser: null, // Пользователь для редактирования групп
+      editingUserGroups: [], // Выбранные группы в модалке
+      isUpdatingGroups: false, // Индикатор загрузки для групп
+      editGroupsError: '', // Ошибка в модалке групп
 
+      // Смена УЗ (пока через prompt)
+      editingUserForCreds: null, // Пользователь для смены логина/пароля
+      newUsername: '',
+      newPassword: '',
+      isUpdatingCreds: false, // Индикатор загрузки для логина/пароля
+      credsError: '', // Ошибка смены логина/пароля (отображается под формой)
+
+      // Текущий пользователь (из localStorage)
       currentUserId: null,
       currentUserRole: null,
       currentUserGroups: [],
     };
   },
   computed: {
-    isSuperAdmin() {
-      return this.currentUserRole === 'SuperAdmin';
-    },
-    isAdmin() {
-      return this.currentUserRole === 'Admin';
-    },
-     canCreateUsers() {
-       return this.isSuperAdmin || this.isAdmin;
-     },
+    isSuperAdmin() { return this.currentUserRole === 'SuperAdmin'; },
+    isAdmin() { return this.currentUserRole === 'Admin'; },
+    // Может ли текущий пользователь создавать других
+    canCreateUsers() { return this.isSuperAdmin || this.isAdmin; },
   },
   methods: {
-     async fetchAvailableGroups() {
-        if (!this.isSuperAdmin) return;
-         try {
-             const response = await axios.get('/api/auth/groups');
-             this.availableGroups = response.data || [];
-         } catch (err) {
-             console.error('Error fetching groups:', err);
-             this.message = 'Не удалось загрузить список групп.';
-             this.messageType = 'error';
-         }
-     },
+    // --- Загрузка данных ---
+    async fetchAvailableGroups() {
+        if (!this.isSuperAdmin) return; // Только ВА нужны группы
+        // Очищаем сообщение основной формы перед загрузкой
+        this.message = ''; this.messageType = 'success';
+        try {
+            const response = await axios.get('/api/auth/groups');
+            this.availableGroups = response.data || [];
+        } catch (err) {
+            console.error('Error fetching groups:', err);
+            // Отображаем ошибку в основной форме, т.к. она влияет на создание админа
+            this.message = 'Не удалось загрузить список групп для формы.';
+            this.messageType = 'error';
+        }
+    },
     async fetchUsers() {
       this.isUserListLoading = true;
       this.userListError = '';
@@ -210,114 +201,208 @@ export default {
       }
     },
 
+    // --- Создание пользователя ---
     async createUser() {
+      if (!this.canCreateUsers || this.isLoading) return;
       this.isLoading = true;
-      this.message = '';
+      this.message = ''; // Сброс предыдущего сообщения
+      this.credsError = ''; // Сброс ошибки УЗ
 
       const payload = {
         username: this.newUser.username,
         password: this.newUser.password,
       };
 
+      // Добавляем роль и группы, если создает ВА
       if (this.isSuperAdmin) {
          payload.role = this.newUser.role;
          payload.groups = this.newUser.groups;
+          // Валидация для Админа (на клиенте, дублирует серверную)
+         if (payload.role === 'Admin' && (!payload.groups || payload.groups.length === 0)) {
+             this.message = 'Ошибка: Администратору необходимо назначить хотя бы одну группу.';
+             this.messageType = 'error';
+             this.isLoading = false;
+             return;
+         }
       }
+      // Если создает Админ, роль и группы бэкенд определит сам
 
       try {
         const response = await axios.post('/api/auth/users', payload);
         this.message = `Пользователь "${response.data.Username}" (${response.data.Role}) успешно создан.`;
         this.messageType = 'success';
+        // Очистка формы
         this.newUser.username = '';
         this.newUser.password = '';
         this.newUser.role = 'User';
         this.newUser.groups = [];
-        await this.fetchUsers();
+        await this.fetchUsers(); // Обновляем список
       } catch (err) {
         console.error('Error creating user:', err);
         this.messageType = 'error';
-        this.message = err.response?.data?.message || 'Ошибка при создании пользователя.';
+        this.message = `Ошибка создания: ${err.response?.data?.message || err.message}`;
       } finally {
         this.isLoading = false;
       }
     },
 
-     openEditGroupsModal(user) {
-         this.editingUser = { ...user };
-         this.editingUserGroups = [...(user.Groups || [])];
+    // --- Редактирование групп ---
+    canEditGroups(user) {
+        // ВА может редактировать группы Админов и Пользователей
+        return this.isSuperAdmin && user.Role !== 'SuperAdmin';
+    },
+    openEditGroupsModal(user) {
+         if (!this.canEditGroups(user)) return;
+         this.editingUser = { ...user }; // Копируем
+         this.editingUserGroups = [...(user.Groups || [])]; // Копируем массив
          this.editGroupsError = '';
          this.showEditModal = true;
+         // Загружаем группы, если еще не загружены
          if (this.availableGroups.length === 0 && this.isSuperAdmin) {
              this.fetchAvailableGroups();
          }
      },
-     closeEditGroupsModal() {
+    closeEditGroupsModal() {
          this.showEditModal = false;
          this.editingUser = null;
          this.editingUserGroups = [];
-     },
-     async updateUserGroups() {
-         if (!this.editingUser || !this.isSuperAdmin) return;
-         this.isUpdatingGroups = true;
          this.editGroupsError = '';
+     },
+    async updateUserGroups() {
+         if (!this.editingUser || !this.isSuperAdmin || this.isUpdatingGroups) return;
 
+         // Проверка для админа (дублируем на клиенте для UX)
          if (this.editingUser.Role === 'Admin' && this.editingUserGroups.length === 0) {
              this.editGroupsError = "Администратор должен состоять хотя бы в одной группе!";
-             this.isUpdatingGroups = false;
              return;
          }
+         this.isUpdatingGroups = true; this.editGroupsError = '';
 
          try {
+             // Отправляем массив имен групп
              await axios.put(`/api/auth/users/${this.editingUser.Id}/groups`, this.editingUserGroups);
              this.closeEditGroupsModal();
-             await this.fetchUsers();
+             await this.fetchUsers(); // Обновляем список в таблице
+             // Показываем сообщение об успехе в основной форме
+             this.message = `Группы для пользователя ${this.editingUser.Username} обновлены.`;
+             this.messageType = 'success';
          } catch (err) {
               console.error('Error updating groups:', err);
-              this.editGroupsError = err.response?.data?.message || 'Ошибка при обновлении групп.';
+              this.editGroupsError = `Ошибка обновления групп: ${err.response?.data?.message || err.message}`;
          } finally {
              this.isUpdatingGroups = false;
          }
      },
 
-     canDeleteUser(userToDelete) {
-         if (userToDelete.Id === this.currentUserId) return false;
-         if (this.isSuperAdmin) {
-             return userToDelete.Role !== 'SuperAdmin';
-         }
+    // --- Смена УЗ ---
+    canEditCredentials(user) {
+        if (!user || user.Id === this.currentUserId || user.Role === 'SuperAdmin') return false;
+        if (this.isSuperAdmin) {
+            // ВА может менять Админов и Пользователей
+            return user.Role === 'Admin' || user.Role === 'User';
+        }
+        if (this.isAdmin) {
+            // Админ меняет только Пользователей из своих групп
+            return user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug));
+        }
+        return false;
+    },
+    async openChangeUsernameModal(user) {
+        if (!this.canEditCredentials(user)) return;
+        const input = prompt(`Введите новый логин для пользователя "${user.Username}" (ID: ${user.Id}):`, user.Username);
+        if (input === null) { this.credsError = ''; return; } // Отмена
+        if (input.trim() === '') { this.credsError = 'Логин не может быть пустым.'; return; }
+        if (input.trim() === user.Username) { this.credsError = 'Новый логин совпадает со старым.'; return; }
+
+        this.newUsername = input.trim();
+        this.editingUserForCreds = user;
+        await this.changeUsername();
+    },
+    async openChangePasswordModal(user) {
+        if (!this.canEditCredentials(user)) return;
+        const input = prompt(`Введите НОВЫЙ пароль для пользователя "${user.Username}" (ID: ${user.Id}):`);
+        if (input === null) { this.credsError = ''; return; } // Отмена
+        if (input === '') { this.credsError = "Пароль не может быть пустым."; return; }
+        // Добавить проверку сложности, если нужно
+
+        this.newPassword = input;
+        this.editingUserForCreds = user;
+        await this.changePassword();
+    },
+    async changeUsername() {
+        if (!this.editingUserForCreds || !this.newUsername || this.isUpdatingCreds) return;
+        this.isUpdatingCreds = true; this.credsError = ''; this.message = '';
+        try {
+            await axios.put(`/api/auth/users/${this.editingUserForCreds.Id}/username`, { newUsername: this.newUsername });
+            this.message = `Логин для ID ${this.editingUserForCreds.Id} изменен на "${this.newUsername}".`;
+            this.messageType = 'success';
+            await this.fetchUsers(); // Обновляем список, т.к. имя изменилось
+        } catch (err) {
+            console.error("Error changing username:", err);
+            this.credsError = `Ошибка смены логина: ${err.response?.data?.message || err.message}`;
+        } finally {
+            this.isUpdatingCreds = false; this.editingUserForCreds = null; this.newUsername = '';
+        }
+    },
+    async changePassword() {
+        if (!this.editingUserForCreds || !this.newPassword || this.isUpdatingCreds) return;
+        this.isUpdatingCreds = true; this.credsError = ''; this.message = '';
+        try {
+            await axios.put(`/api/auth/users/${this.editingUserForCreds.Id}/password`, { newPassword: this.newPassword });
+            this.message = `Пароль для пользователя ID ${this.editingUserForCreds.Id} успешно изменен.`;
+            this.messageType = 'success';
+        } catch (err) {
+             console.error("Error changing password:", err);
+             this.credsError = `Ошибка смены пароля: ${err.response?.data?.message || err.message}`;
+        } finally {
+            this.isUpdatingCreds = false; this.editingUserForCreds = null; this.newPassword = '';
+        }
+    },
+
+    // --- Удаление пользователя ---
+    canDeleteUser(user) {
+         if (!user || user.Id === this.currentUserId || user.Role === 'SuperAdmin') return false;
+         if (this.isSuperAdmin) return true; // ВА удаляет всех, кроме себя
          if (this.isAdmin) {
-             return userToDelete.Role === 'User' &&
-                    userToDelete.Groups.some(ug => this.currentUserGroups.includes(ug));
+             // Админ удаляет только User из своих групп
+             return user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug));
          }
          return false;
      },
     async deleteUser(userId, username) {
-      if (!confirm(`Вы уверены, что хотите удалить пользователя "${username}" (ID: ${userId})?`)) {
+      if (!this.canDeleteUser({ Id: userId })) return; // Доп. проверка
+      if (!confirm(`Вы уверены, что хотите удалить пользователя "${username}" (ID: ${userId})? Это действие необратимо.`)) {
         return;
       }
+      // Можно добавить индикатор удаления
+      this.message = ''; this.credsError = ''; // Сброс сообщений
       try {
         await axios.delete(`/api/auth/users/${userId}`);
-        this.message = `Пользователь "${username}" удален.`;
+        this.message = `Пользователь "${username}" (ID: ${userId}) удален.`;
         this.messageType = 'success';
-        await this.fetchUsers();
+        await this.fetchUsers(); // Обновляем список
       } catch (err) {
         console.error('Error deleting user:', err);
-        this.message = err.response?.data?.message || 'Ошибка при удалении пользователя.';
+        this.message = `Ошибка удаления: ${err.response?.data?.message || err.message}`;
         this.messageType = 'error';
+      } finally {
+         // Сброс индикатора удаления
       }
     },
 
-     loadCurrentUser() {
+    // --- Инициализация ---
+    loadCurrentUser() {
         this.currentUserId = parseInt(localStorage.getItem('userId') || '0');
         this.currentUserRole = localStorage.getItem('userRole');
-        try {
-            this.currentUserGroups = JSON.parse(localStorage.getItem('userGroups') || '[]');
-        } catch { this.currentUserGroups = []; }
-     }
+        try { this.currentUserGroups = JSON.parse(localStorage.getItem('userGroups') || '[]'); }
+        catch { this.currentUserGroups = []; }
+         console.log('Current User Loaded:', {id: this.currentUserId, role: this.currentUserRole, groups: this.currentUserGroups });
+    }
   },
   created() {
-     this.loadCurrentUser();
-     this.fetchUsers();
-     if (this.isSuperAdmin) {
+     this.loadCurrentUser(); // Сначала узнаем, кто мы
+     this.fetchUsers();      // Потом загружаем список пользователей (API сам отфильтрует)
+     if (this.isSuperAdmin) { // Если ВА, то еще и группы для формы загружаем
        this.fetchAvailableGroups();
      }
   }
@@ -325,70 +410,60 @@ export default {
 </script>
 
 <style scoped>
-.input-error {
-    color: #dc3545;
-    font-size: 0.8em;
-    display: block;
-    margin-top: 4px;
-}
-.user-list-section { margin-top: 30px; }
-.refresh-button { margin-bottom: 15px; }
-.user-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-.user-table th, .user-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+.admin-user-management { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+h2 { margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+
+/* Секции */
+.create-user-section { margin-bottom: 30px; padding: 25px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fdfdfd; }
+.user-list-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;}
+.create-user-section h3, .user-list-section h3 { margin-top: 0; margin-bottom: 20px; color: #444; }
+
+/* Форма создания */
+.create-user-form .form-row { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
+.create-user-form .form-group { flex: 1; min-width: 200px; margin-bottom: 5px; }
+.create-user-form .form-group.full-width { flex-basis: 100%; min-width: auto;}
+.create-user-form label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; font-size: 0.9rem; }
+.create-user-form input, .create-user-form select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.95rem; }
+.create-user-form input:focus, .create-user-form select:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2); }
+.checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 5px; padding: 10px; border: 1px solid #eee; border-radius: 4px; background-color: #f9f9f9; }
+.checkbox-label { display: inline-flex; align-items: center; cursor: pointer; margin: 0;}
+.checkbox-label input { margin-right: 5px; cursor: pointer; }
+.create-user-form small { display: block; margin-top: 5px; font-size: 0.85em; color: #6c757d; }
+.create-button { padding: 12px 25px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s ease; margin-top: 10px; }
+.create-button:hover:not(:disabled) { background-color: #218838; }
+.create-button:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+/* Сообщения и ошибки */
+.message { padding: 12px 15px; margin-top: 20px; border-radius: 4px; border: 1px solid transparent; font-size: 0.95rem; }
+.message.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+.message.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+.error-message { /* Стиль для ошибки списка */ text-align: center; padding: 15px; margin-top: 15px; border-radius: 4px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.error-message.small { /* Для модалки */ padding: 8px; margin-top: 10px; text-align: left;}
+
+/* Список пользователей */
+.refresh-button { margin-bottom: 15px; padding: 8px 15px;}
+.user-table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; /* Для лучшего контроля ширины */ }
+.user-table th, .user-table td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; word-wrap: break-word; /* Перенос длинных строк */ }
 .user-table th { background-color: #f2f2f2; font-weight: bold; }
 .user-table td { vertical-align: middle; }
-.user-table .action-button {
-  background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 5px;
-  margin-right: 5px;
-}
-.edit-button { color: #ffc107; }
-.delete-button { color: #dc3545; }
+.user-table td.actions-cell { text-align: center; width: 150px; /* Фиксированная ширина для кнопок */ white-space: nowrap; /* Запрет переноса кнопок */}
+.action-button { background: none; border: none; cursor: pointer; font-size: 1.2rem; padding: 4px; margin: 0 3px; border-radius: 4px; transition: background-color 0.2s; line-height: 1;}
+.action-button:hover:not(:disabled) { background-color: #eee; }
+.action-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.edit-button { color: #ffc107; } /* Желтый */
+.change-button { color: #17a2b8; } /* Бирюзовый */
+.delete-button { color: #dc3545; } /* Красный */
+.loading-indicator { text-align: center; padding: 20px; color: #6c757d; }
 
-.checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-top: 5px;
-    padding: 10px;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    background-color: #f9f9f9;
-}
-.checkbox-label {
-    display: inline-flex;
-    align-items: center;
-    cursor: pointer;
-    margin-right: 10px;
-}
-.checkbox-label input {
-    margin-right: 5px;
-    cursor: pointer;
-}
-.form-group.full-width {
-    flex-basis: 100%;
-}
-.create-user-form small {
-    display: block;
-    margin-top: 5px;
-    font-size: 0.85em;
-    color: #6c757d;
-}
-
-.modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); display: flex;
-  justify-content: center; align-items: center; z-index: 1000;
-}
-.modal-content {
-  background-color: white; padding: 30px; border-radius: 8px;
-  min-width: 400px; max-width: 600px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
+/* Стили модального окна (из пред. ответа) */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background-color: white; padding: 30px; border-radius: 8px; min-width: 400px; max-width: 600px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
 .modal-content h4 { margin-top: 0; margin-bottom: 20px; }
+.modal-content .checkbox-group { margin-top: 15px; margin-bottom: 15px; } /* Отступы внутри модалки */
 .modal-actions { margin-top: 25px; display: flex; justify-content: flex-end; gap: 10px; }
 .modal-actions button { padding: 10px 20px; border-radius: 4px; cursor: pointer; border: none; }
 .save-button { background-color: #28a745; color: white; }
 .save-button:disabled { background-color: #ccc; }
 .cancel-button { background-color: #6c757d; color: white; }
 .cancel-button:disabled { background-color: #ccc; }
-.modal-content .error-message { margin-top: 15px; }
 </style>

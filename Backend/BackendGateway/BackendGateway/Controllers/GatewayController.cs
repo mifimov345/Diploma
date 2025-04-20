@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Net.Http.Headers;
+using System.Net.Http.Headers; // Для MediaTypeHeaderValue и AuthenticationHeaderValue
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.IO;
-using System;
+using Microsoft.Extensions.Logging; // Для логирования
+using System.Linq; // Для Concat
+using System.IO;   // Для SeekOrigin, MemoryStream
+using System;     // Для Uri, StringComparison, ArgumentNullException
 using System.Text;
+using System.Net; // Для Encoding
 
 namespace BackendGateway.Controllers
 {
@@ -20,6 +21,7 @@ namespace BackendGateway.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<GatewayController> _logger;
 
+        // Внедряем зависимости через конструктор
         public GatewayController(
             IHttpClientFactory httpClientFactory,
             IHttpContextAccessor httpContextAccessor,
@@ -30,147 +32,232 @@ namespace BackendGateway.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        // Ловит все HTTP-методы для путей ПОСЛЕ /api/{service}/
+        // Весь остальной путь (включая слеши) попадает в 'downstreamPath'
         [Route("{*downstreamPath}")]
         [AcceptVerbs("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")]
         public async Task<IActionResult> ForwardRequest([FromRoute] string service, [FromRoute] string downstreamPath)
         {
             var originalRequest = _httpContextAccessor.HttpContext.Request;
-            var cancellationToken = HttpContext.RequestAborted;
-            var requestPath = originalRequest.Path.Value ?? "";
-            var isFileDownloadRequest = requestPath.Contains("/download/", StringComparison.OrdinalIgnoreCase); // Определяем запрос на скачивание
+            var cancellationToken = HttpContext.RequestAborted; // Получаем токен отмены
+            var requestPath = originalRequest.Path.Value ?? ""; // Получаем оригинальный путь запроса
+
+            // Формируем URL к нижележащему сервису
+            string targetUrl = BuildTargetUrl(service, downstreamPath, originalRequest.Query); // Передаем IQueryCollection
+
+            if (targetUrl == null)
+            {
+                _logger.LogWarning("Target URL could not be built for service '{Service}'.", service);
+                return NotFound($"Service '{service}' not found or invalid path.");
+            }
 
             _logger.LogInformation("--- Gateway ForwardRequest ---");
-            _logger.LogInformation("Route parameter 'service': {ServiceParam}", service);
-            _logger.LogInformation("Route parameter 'downstreamPath': {PathParam}", downstreamPath ?? "<null_or_empty>");
-            _logger.LogInformation("Original Request Path: {OriginalPath}", requestPath);
-            _logger.LogInformation("Original Request Query: {OriginalQuery}", originalRequest.QueryString);
+            _logger.LogInformation("Forwarding {Method} {RequestPath} to: {TargetUrl}", originalRequest.Method, requestPath, targetUrl);
 
-            string serviceName = service;
+            var client = _httpClientFactory.CreateClient();
+            using var requestMessage = new HttpRequestMessage();
+            ConfigureHttpRequestMessage(requestMessage, originalRequest, targetUrl); // Настройка метода, URI, версии
+            await CopyRequestBodyAsync(originalRequest, requestMessage); // Копирование тела запроса
+            CopyRequestHeaders(originalRequest, requestMessage); // Копирование заголовков запроса
 
-            // Определяем базовый URL целевого сервиса
-            string targetServiceBaseUrl = serviceName.ToLower() switch
+            try
             {
-                "auth" => "http://authservice",    // Имя сервиса из docker-compose
-                "file" => "http://fileservice",    // Имя сервиса из docker-compose
-                _ => null
+                // --- ВАЖНО: Используем ResponseHeadersRead для возможности потоковой передачи файлов ---
+                _logger.LogDebug("Sending request to downstream service...");
+                using HttpResponseMessage response = await client.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+                _logger.LogInformation("Received response from {TargetUrl} with status code {StatusCode} ({ReasonPhrase})", targetUrl, (int)response.StatusCode, response.ReasonPhrase);
+
+                // Копируем статус-код и заголовки ответа в исходящий ответ
+                HttpContext.Response.StatusCode = (int)response.StatusCode;
+                CopyResponseHeaders(response, HttpContext.Response); // Копируем "безопасные" заголовки
+
+                // --- Определяем, как вернуть ответ ---
+                // 1. Скачивание/Предпросмотр файлов? (Проверяем по пути - /api/file/download/*)
+                bool isFileDownload = service.Equals("file", StringComparison.OrdinalIgnoreCase)
+                                    && downstreamPath != null
+                                    && downstreamPath.StartsWith("download/", StringComparison.OrdinalIgnoreCase);
+
+                // 2. Успешный ответ?
+                if (response.IsSuccessStatusCode) // Статус 2xx
+                {
+                    if (isFileDownload)
+                    {
+                        // Возвращаем файл потоком для эффективности
+                        _logger.LogInformation("<<< Gateway preparing to stream file download response.");
+                        var contentType = response.Content.Headers.ContentType?.ToString();
+                        return new StreamResult(await response.Content.ReadAsStreamAsync(cancellationToken), contentType);
+                    }
+                    else // Обычный успешный ответ (JSON, text и т.д.)
+                    {
+                        // Читаем тело как строку и возвращаем через ContentResult
+                        _logger.LogInformation("<<< Gateway preparing to return full response content (non-download).");
+                        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                        _logger.LogDebug("<<< Read response body: {Length} chars. Body Sample: {BodySample}", responseBody.Length, responseBody.Substring(0, Math.Min(responseBody.Length, 200)));
+                        var contentType = response.Content.Headers.ContentType?.ToString() ?? GetDefaultContentType(requestPath);
+                        // Устанавливаем Content-Type явно, т.к. Content() не всегда его правильно угадывает
+                        return Content(responseBody, contentType);
+                    }
+                }
+                else // Неуспешный ответ (4xx, 5xx)
+                {
+                    // Пытаемся прочитать тело ошибки и вернуть его как есть
+                    string errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogWarning("Downstream service at {TargetUrl} returned status {StatusCode}. Body: '{ErrorBody}'", targetUrl, response.StatusCode, errorBody);
+                    var errorContentType = response.Content.Headers.ContentType?.ToString() ?? "text/plain";
+                    // Статус код уже установлен из response.StatusCode
+                    return Content(errorBody, errorContentType);
+                }
+            }
+            catch (HttpRequestException ex) // Ошибки сети/подключения/DNS
+            {
+                _logger.LogError(ex, "HttpRequestException forwarding request to {TargetUrl}. Downstream service might be unavailable. Message: {ErrorMessage}", targetUrl, ex.Message);
+                // Возвращаем 502 Bad Gateway
+                return StatusCode(StatusCodes.Status502BadGateway, $"Error connecting to the downstream service '{service}'. Please try again later.");
+            }
+            catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken) // Отмена запроса клиентом
+            {
+                _logger.LogInformation(ex, "Request was cancelled by the client while forwarding or reading response from {TargetUrl}.", targetUrl);
+                // Клиент уже отсоединился, просто возвращаем пустой результат
+                return new EmptyResult();
+            }
+            catch (TaskCanceledException ex) // Таймаут HttpClient или другая отмена задачи
+            {
+                if (ex.CancellationToken == cancellationToken)
+                { // Если это отмена клиентом
+                    _logger.LogInformation(ex, "Request was cancelled by the client (TaskCanceledException) for {TargetUrl}.", targetUrl);
+                    return new EmptyResult();
+                }
+                else
+                { // Скорее всего, таймаут HttpClient
+                    _logger.LogError(ex, "TaskCanceledException (likely HttpClient timeout) forwarding request to {TargetUrl}.", targetUrl);
+                    // Возвращаем 504 Gateway Timeout
+                    return StatusCode(StatusCodes.Status504GatewayTimeout, $"The request timed out while waiting for the downstream service '{service}'.");
+                }
+            }
+            catch (Exception ex) // Другие непредвиденные ошибки шлюза
+            {
+                _logger.LogError(ex, "Unexpected gateway error while forwarding request to {TargetUrl}", targetUrl);
+                // Возвращаем 500 Internal Server Error
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal gateway error occurred.");
+            }
+        }
+
+        // --- Вспомогательные методы ---
+
+        private string BuildTargetUrl(string service, string downstreamPath, IQueryCollection query)
+        {
+            string serviceName = service.ToLowerInvariant(); // Используем имя из URL для определения сервиса
+            string targetServiceBaseUrl = serviceName switch
+            {
+                "auth" => "http://authservice",
+                "file" => "http://fileservice",
+                "search" => "http://searchservice", // Добавлен сервис поиска
+                _ => null // Неизвестный сервис
             };
 
             if (targetServiceBaseUrl == null)
             {
-                _logger.LogWarning("Unknown service requested: {ServiceName}", serviceName);
-                return NotFound($"Service '{serviceName}' not found.");
+                _logger.LogWarning("BuildTargetUrl: Unknown service requested in URL: {ServiceName}", service); // Логируем исходное имя
+                return null;
             }
 
+            // Собираем URL: базовый URL сервиса + /api/ + имя сервиса + остальной путь + строка запроса
             string targetUrl = $"{targetServiceBaseUrl}/api/{serviceName}";
             if (!string.IsNullOrEmpty(downstreamPath))
             {
                 targetUrl += $"/{downstreamPath.TrimStart('/')}";
             }
-            targetUrl += originalRequest.QueryString;
+            // Формируем строку запроса из коллекции IQueryCollection
+            targetUrl += QueryString.Create(query.ToDictionary(q => q.Key, q => q.Value.ToString())).ToUriComponent();
 
-            _logger.LogInformation("Forwarding {Method} request to: {TargetUrl}", originalRequest.Method, targetUrl);
+            _logger.LogDebug("BuildTargetUrl Result: {TargetUrl}", targetUrl);
+            return targetUrl;
+        }
 
-            var client = _httpClientFactory.CreateClient();
-            using var requestMessage = new HttpRequestMessage();
-            requestMessage.Method = new HttpMethod(originalRequest.Method);
-            requestMessage.RequestUri = new Uri(targetUrl);
+        private void ConfigureHttpRequestMessage(HttpRequestMessage message, HttpRequest originalRequest, string targetUrl)
+        {
+            message.Method = new HttpMethod(originalRequest.Method);
+            message.RequestUri = new Uri(targetUrl);
 
-            await SetRequestContentAsync(originalRequest, requestMessage);
-            CopyRequestHeaders(originalRequest, requestMessage);
-
+            // --- ИСПРАВЛЕНИЕ: Установка версии HTTP ---
             try
             {
-                using HttpResponseMessage response = await client.SendAsync(requestMessage,
-                    isFileDownloadRequest ? HttpCompletionOption.ResponseHeadersRead : HttpCompletionOption.ResponseContentRead,
-                    cancellationToken);
-
-                _logger.LogInformation("Received response from {TargetUrl} with status code {StatusCode}", targetUrl, response.StatusCode);
-
-                HttpContext.Response.StatusCode = (int)response.StatusCode;
-                CopyResponseHeaders(response, HttpContext.Response);
-
-                if (!response.IsSuccessStatusCode)
+                string protocolVersion = originalRequest.Protocol; // Например, "HTTP/1.1" или "HTTP/2.0"
+                if (!string.IsNullOrEmpty(protocolVersion))
                 {
-                    string errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogWarning("Downstream service at {TargetUrl} returned status {StatusCode}. Body: '{ErrorBody}'", targetUrl, response.StatusCode, errorBody);
-                    return Content(errorBody, response.Content.Headers.ContentType?.ToString() ?? "text/plain");
-                }
-                else if (isFileDownloadRequest)
-                {
-                    _logger.LogInformation("<<< Gateway preparing to stream file download response.");
-                    var contentType = response.Content.Headers.ContentType?.ToString();
-                    return new StreamResult(await response.Content.ReadAsStreamAsync(cancellationToken), contentType);
+                    if (protocolVersion.EndsWith("/2") || protocolVersion.EndsWith("/2.0"))
+                    {
+                        message.Version = HttpVersion.Version20; // Используем статическое свойство
+                    }
+                    else if (protocolVersion.EndsWith("/1.1"))
+                    {
+                        message.Version = HttpVersion.Version11; // Используем статическое свойство
+                    }
+                    else if (protocolVersion.EndsWith("/1.0"))
+                    {
+                        message.Version = HttpVersion.Version10; // Используем статическое свойство
+                    }
+                    else
+                    {
+                        // Если не распознали, ставим 1.1 по умолчанию
+                        message.Version = HttpVersion.Version11;
+                        _logger.LogDebug("Could not parse HTTP version from '{Protocol}', defaulting to {DefaultVersion}", protocolVersion, message.Version);
+                    }
                 }
                 else
                 {
-                    _logger.LogInformation("<<< Gateway preparing to return full response content (non-download).");
-                    try
-                    {
-                        string responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                        _logger.LogInformation("<<< Read response body: {BodyLength} chars", responseBody.Length);
-                        _logger.LogDebug("<<< Response Body Content: {Body}", responseBody);
-
-                        var contentType = response.Content.Headers.ContentType?.ToString() ?? "application/json; charset=utf-8";
-                        return Content(responseBody, contentType);
-                    }
-                    catch (Exception exRead)
-                    {
-                        _logger.LogError(exRead, "Error reading non-download response body in Gateway from {TargetUrl}", targetUrl);
-                        return StatusCode(StatusCodes.Status500InternalServerError, "Error reading response body in gateway");
-                    }
+                    // Если протокол пуст, ставим 1.1
+                    message.Version = HttpVersion.Version11;
+                    _logger.LogWarning("Original request protocol was empty, defaulting to HTTP/1.1");
                 }
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex) // Ловим любые ошибки парсинга или доступа
             {
-                _logger.LogError(ex, "HttpRequestException while forwarding request to {TargetUrl}.", targetUrl);
-                return StatusCode(StatusCodes.Status502BadGateway, $"Error connecting to downstream service '{serviceName}'.");
+                message.Version = HttpVersion.Version11; // Безопасный fallback
+                _logger.LogError(ex, "Error determining HTTP version from protocol '{Protocol}', defaulting to {DefaultVersion}", originalRequest.Protocol, message.Version);
             }
-            catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
-            {
-                _logger.LogInformation(ex, "Request cancelled by client while forwarding to {TargetUrl}.", targetUrl);
-                return new EmptyResult();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected Gateway error while forwarding request to {TargetUrl}", targetUrl);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal gateway error.");
-            }
+
+            // Устанавливаем политику версии (позволяем понижение)
+            message.VersionPolicy = HttpVersionPolicy.RequestVersionOrLower;
+            // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
+            _logger.LogDebug("Configured HttpRequestMessage: Method={Method}, Version={Version}, VersionPolicy={Policy}, URI={Uri}", message.Method, message.Version, message.VersionPolicy, message.RequestUri);
         }
-        private async Task SetRequestContentAsync(HttpRequest sourceRequest, HttpRequestMessage targetRequest)
+
+        private async Task CopyRequestBodyAsync(HttpRequest source, HttpRequestMessage target)
         {
-            if (sourceRequest.ContentLength.HasValue && sourceRequest.ContentLength > 0 &&
-                (sourceRequest.Method.Equals("POST", StringComparison.OrdinalIgnoreCase) ||
-                 sourceRequest.Method.Equals("PUT", StringComparison.OrdinalIgnoreCase) ||
-                 sourceRequest.Method.Equals("PATCH", StringComparison.OrdinalIgnoreCase)))
+            // Проверяем, есть ли тело для копирования
+            bool hasBody = (source.ContentLength.HasValue && source.ContentLength > 0) || source.Headers.TransferEncoding.Contains("chunked");
+            bool methodAllowsBody = HttpMethods.IsPost(source.Method) || HttpMethods.IsPut(source.Method) || HttpMethods.IsPatch(source.Method);
+
+            if (!hasBody || !methodAllowsBody)
             {
-                if (sourceRequest.Body.CanSeek)
-                {
-                    sourceRequest.Body.Seek(0, SeekOrigin.Begin);
-                    _logger.LogDebug("Request body seeked to beginning before copying.");
-                }
-                else
-                {
-                    _logger.LogWarning("Request body is not seekable for copy. Ensure buffering is enabled in Program.cs.");
-                }
-
-                var memoryStream = new MemoryStream();
-                await sourceRequest.Body.CopyToAsync(memoryStream, sourceRequest.HttpContext.RequestAborted);
-                memoryStream.Seek(0, SeekOrigin.Begin);
-
-                var streamContent = new StreamContent(memoryStream);
-                targetRequest.Content = streamContent;
-
-                if (!string.IsNullOrEmpty(sourceRequest.ContentType))
-                {
-                    try { streamContent.Headers.ContentType = MediaTypeHeaderValue.Parse(sourceRequest.ContentType); }
-                    catch (FormatException ex) { _logger.LogWarning(ex, "Failed to parse request Content-Type: {ContentType}", sourceRequest.ContentType); }
-                }
-                _logger.LogDebug("Request body copied to target message using MemoryStream.");
+                _logger.LogDebug("Request body not copied (Method: {Method}, HasBody: {HasBody})", source.Method, hasBody);
+                return;
             }
-            else
+
+            _logger.LogDebug("Attempting to copy request body...");
+            try
             {
-                _logger.LogDebug("No request body to copy (Method: {Method}, ContentLength: {Length}).", sourceRequest.Method, sourceRequest.ContentLength);
+                if (!source.Body.CanRead) { _logger.LogWarning("Source request body is not readable."); return; }
+                if (source.Body.CanSeek) { source.Body.Seek(0, SeekOrigin.Begin); _logger.LogDebug("Source request body seeked to beginning."); }
+                else { _logger.LogWarning("Source request body is not seekable."); }
+
+                // Используем StreamContent без передачи владения потоком
+                target.Content = new StreamContent(source.Body);
+
+                // Копируем заголовки контента
+                if (!string.IsNullOrEmpty(source.ContentType))
+                {
+                    try { target.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(source.ContentType); }
+                    catch (FormatException fex) { _logger.LogWarning(fex, "Failed to parse request Content-Type: {ContentType}", source.ContentType); }
+                }
+                if (source.ContentLength.HasValue) { target.Content.Headers.ContentLength = source.ContentLength.Value; } // Копируем, если есть
+
+                _logger.LogDebug("Request body StreamContent copied. ContentType: {ContentType}, ContentLength Header: {ContentLength}", target.Content.Headers.ContentType, target.Content.Headers.ContentLength);
             }
+            catch (Exception ex) { _logger.LogError(ex, "Error copying request body stream."); }
         }
 
         private void CopyRequestHeaders(HttpRequest sourceRequest, HttpRequestMessage targetRequest)
@@ -178,28 +265,31 @@ namespace BackendGateway.Controllers
             foreach (var header in sourceRequest.Headers)
             {
                 string key = header.Key;
+                string[] values = header.Value.ToArray();
+
+                // Исключаем заголовки Host и те, что связаны с контентом (копируются в CopyRequestBodyAsync)
+                // и hop-by-hop заголовки
                 if (key.Equals("Host", StringComparison.OrdinalIgnoreCase) ||
                     key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
                     key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) ||
-                    key.StartsWith("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) ||
-                    key.StartsWith("Connection", StringComparison.OrdinalIgnoreCase) ||
-                    key.StartsWith("Keep-Alive", StringComparison.OrdinalIgnoreCase) ||
-                    key.StartsWith("Proxy-", StringComparison.OrdinalIgnoreCase) ||
+                    key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) ||
+                    key.Equals("Connection", StringComparison.OrdinalIgnoreCase) ||
+                    key.Equals("Keep-Alive", StringComparison.OrdinalIgnoreCase) ||
+                    key.Equals("Proxy-Authenticate", StringComparison.OrdinalIgnoreCase) ||
+                    key.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase) ||
                     key.Equals("TE", StringComparison.OrdinalIgnoreCase) ||
                     key.Equals("Trailers", StringComparison.OrdinalIgnoreCase) ||
                     key.Equals("Upgrade", StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
+                { continue; }
 
-                if (!targetRequest.Headers.TryAddWithoutValidation(key, header.Value.ToArray()))
+                // Пытаемся добавить к заголовкам запроса
+                if (!targetRequest.Headers.TryAddWithoutValidation(key, values))
                 {
+                    // Если не вышло и есть контент, пытаемся добавить к заголовкам контента
                     if (targetRequest.Content != null)
                     {
-                        if (!targetRequest.Content.Headers.TryAddWithoutValidation(key, header.Value.ToArray()))
-                        {
-                            _logger.LogWarning("Could not add request header {HeaderKey} to request or content.", key);
-                        }
+                        if (!targetRequest.Content.Headers.TryAddWithoutValidation(key, values))
+                        { _logger.LogWarning("Could not add request header {HeaderKey} to request or content.", key); }
                     }
                     else { _logger.LogDebug("Could not add request header {HeaderKey} (no content).", key); }
                 }
@@ -211,31 +301,39 @@ namespace BackendGateway.Controllers
         private void CopyResponseHeaders(HttpResponseMessage sourceResponse, HttpResponse targetResponse)
         {
             targetResponse.Headers.Clear();
+            // Копируем заголовки из ответа и из контента ответа
             foreach (var header in sourceResponse.Headers.Concat(sourceResponse.Content.Headers))
             {
                 string key = header.Key;
+                string[] values = header.Value.ToArray();
+
+                // Исключаем hop-by-hop и Content-Length
                 if (key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) ||
                     key.Equals("Connection", StringComparison.OrdinalIgnoreCase) ||
-                    key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) || 
-                    key.StartsWith("Keep-Alive", StringComparison.OrdinalIgnoreCase) ||
-                    key.StartsWith("Proxy-", StringComparison.OrdinalIgnoreCase) ||
-                    key.Equals("TE", StringComparison.OrdinalIgnoreCase) ||
-                    key.Equals("Trailers", StringComparison.OrdinalIgnoreCase) ||
-                    key.Equals("Upgrade", StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogDebug("Skipping response header copy: {HeaderKey}", key);
-                    continue;
-                }
+                    // ... другие hop-by-hop ...
+                    key.Equals("Upgrade", StringComparison.OrdinalIgnoreCase) ||
+                    key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase))
+                { continue; }
 
-                _logger.LogDebug("Copying response header: {HeaderKey} = [{HeaderValue}]", key, string.Join(", ", header.Value));
-                if (!targetResponse.Headers.TryAdd(key, header.Value.ToArray()))
-                {
-                    _logger.LogWarning("Could not add response header '{HeaderKey}' to outgoing response.", key);
-                }
+                _logger.LogDebug("Copying response header: {HeaderKey} = {HeaderValue}", key, string.Join(";", values));
+                try { targetResponse.Headers.AppendList(key, values.ToList()); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Could not append response header '{HeaderKey}'", key); }
             }
         }
-    }
 
+        // Определяем Content-Type по умолчанию для не-файловых ответов
+        private string GetDefaultContentType(string requestPath)
+        {
+            // Простое определение: если путь содержит /api/, считаем JSON
+            if (requestPath != null && requestPath.Contains("/api/", StringComparison.OrdinalIgnoreCase))
+                return "application/json; charset=utf-8";
+            // Иначе - простой текст
+            return "text/plain; charset=utf-8";
+        }
+
+    } // --- Конец класса GatewayController ---
+
+    // Вспомогательный класс для возврата потока напрямую (для скачивания файлов)
     public class StreamResult : IActionResult
     {
         private readonly Stream _stream;
@@ -253,42 +351,31 @@ namespace BackendGateway.Controllers
             var cancellationToken = context.HttpContext.RequestAborted;
             var logger = context.HttpContext.RequestServices.GetService<ILogger<StreamResult>>();
 
-            if (!string.IsNullOrEmpty(_contentType))
-            {
-                response.ContentType = _contentType;
-                logger?.LogDebug("StreamResult: Setting response Content-Type to {ContentType}", _contentType);
-            }
-            else
-            {
-                logger?.LogDebug("StreamResult: Response Content-Type is not set.");
-            }
+            if (!string.IsNullOrEmpty(_contentType)) { response.ContentType = _contentType; }
+            logger?.LogDebug("StreamResult: Executing. ContentType: {ContentType}. Stream CanRead: {CanRead}", _contentType ?? "N/A", _stream.CanRead);
 
             try
             {
-                logger?.LogDebug("StreamResult: Starting to copy stream...");
+                // Копируем поток в тело ответа
                 await _stream.CopyToAsync(response.Body, cancellationToken);
-                logger?.LogDebug("StreamResult: Finished copying stream.");
-                await response.Body.FlushAsync(cancellationToken);
-                logger?.LogDebug("StreamResult: Response body flushed.");
+                await response.Body.FlushAsync(cancellationToken); // Принудительно сбрасываем буфер
+                logger?.LogDebug("StreamResult: Stream copied and flushed successfully.");
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                logger?.LogInformation("StreamResult: Stream copy cancelled by client.");
-            }
+            { logger?.LogInformation("StreamResult: Stream copy cancelled by client."); }
             catch (Exception ex)
             {
-                logger?.LogError(ex, "StreamResult: Error copying response stream.");
-                if (!context.HttpContext.Response.HasStarted)
-                {
-                    response.StatusCode = StatusCodes.Status500InternalServerError;
-                }
-                context.HttpContext.Abort();
+                logger?.LogError(ex, "StreamResult: Error copying response stream to the client.");
+                // Прерываем соединение, если можем
+                try { if (!context.HttpContext.Response.HasStarted) context.HttpContext.Abort(); } catch { /* ignore */ }
             }
             finally
             {
+                // Гарантированно освобождаем поток, полученный от HttpClient
                 await _stream.DisposeAsync();
                 logger?.LogDebug("StreamResult: Downstream response stream disposed.");
             }
         }
     }
-}
+
+} // --- Конец namespace ---

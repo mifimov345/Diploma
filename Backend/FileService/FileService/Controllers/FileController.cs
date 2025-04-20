@@ -1,23 +1,23 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers; // Для ContentDispositionHeaderValue
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using FileService.Models;
 using FileService.Services;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.Http;
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Text.Json;
-using Microsoft.IdentityModel.Tokens;
-
+using Microsoft.Extensions.Logging;
+using System.Net.Http;      // Для HttpClientFactory
+using System.Text;          // Для Encoding
+using System.Text.Json;     // Для JsonSerializer
+using Microsoft.AspNetCore.Http; // Для StatusCodes
 
 namespace FileService.Controllers
 {
-    // Роли должны совпадать с AuthService!
+    // Определим константы ролей здесь для удобства
     public static class AppRoles
     {
         public const string SuperAdmin = "SuperAdmin";
@@ -32,429 +32,622 @@ namespace FileService.Controllers
     {
         private readonly IFileMetadataService _metadataService;
         private readonly ILogger<FileController> _logger;
-        private readonly string _uploadBasePath;
+        private readonly string _uploadBasePath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+        private readonly IHttpClientFactory _httpClientFactory; // Для уведомления SearchService
 
-        public FileController(IFileMetadataService metadataService, ILogger<FileController> logger, IConfiguration configuration)
+        public FileController(
+            IFileMetadataService metadataService,
+            ILogger<FileController> logger,
+            IHttpClientFactory httpClientFactory) // Внедряем зависимости
         {
             _metadataService = metadataService ?? throw new ArgumentNullException(nameof(metadataService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            _uploadBasePath = configuration["UploadBasePath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-            _logger.LogInformation("File upload base path configured to: {UploadPath}", _uploadBasePath);
-
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
             try
             {
+                // Убедимся, что базовая папка существует при запуске
                 if (!Directory.Exists(_uploadBasePath))
                 {
                     Directory.CreateDirectory(_uploadBasePath);
-                    _logger.LogInformation("Created base upload directory: {UploadPath}", _uploadBasePath);
+                    _logger.LogInformation("Upload base directory created at: {Path}", _uploadBasePath);
+                }
+                else
+                {
+                    _logger.LogInformation("Upload base directory already exists at: {Path}", _uploadBasePath);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, "Failed to create or access base upload directory: {UploadPath}. File uploads might fail.", _uploadBasePath);
+                _logger.LogError(ex, "Failed to create or access upload base directory at: {Path}", _uploadBasePath);
+                // В реальном приложении это может быть критичной ошибкой, возможно стоит выбросить исключение
+                // throw new ApplicationException($"Failed to initialize upload directory '{_uploadBasePath}'. Service cannot start.", ex);
             }
         }
 
         // --- Загрузка файла ---
         [HttpPost("upload")]
-        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
+        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")] // Все авторизованные могут загружать
         public async Task<IActionResult> UploadFile([FromForm] FileUploadModel model)
         {
-            // Проверяем наличие файла и его размер
-            if (model?.File == null || model.File.Length == 0)
+            if (model.File == null || model.File.Length == 0)
             {
-                _logger.LogWarning("UploadFile attempt with no file or zero length.");
-                return BadRequest("No file uploaded or file is empty."); // 400 Bad Request
-            }
-            // Проверка максимального размера (найти как сделать через конфиг)
-            // if (model.File.Length > 100 * 1024 * 1024) // 100 MB limit example
-            // {
-            //     _logger.LogWarning("UploadFile rejected: File size {FileSize} exceeds limit.", model.File.Length);
-            //     return BadRequest("File size exceeds the allowed limit.");
-            // }
-
-
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var userPrimaryGroup = User.FindAll("group").FirstOrDefault()?.Value?.Trim();
-
-            if (string.IsNullOrWhiteSpace(userPrimaryGroup))
-            {
-                userPrimaryGroup = "Default";
-                _logger.LogInformation("User ID {UserId} has no groups in token, using 'Default' group for upload path.", userId);
+                _logger.LogWarning("UploadFile attempt with no file.");
+                return BadRequest("No file uploaded.");
             }
 
-            _logger.LogInformation("UploadFile request by UserID: {UserId}, Primary Group: {UserGroup}, Original Filename: {FileName}, Size: {FileSize} bytes",
-                userId, userPrimaryGroup, model.File.FileName, model.File.Length);
+            // Ограничение размера файла (пример: 100MB)
+            long maxFileSize = 100 * 1024 * 1024;
+            if (model.File.Length > maxFileSize)
+            {
+                _logger.LogWarning("UploadFile attempt by User (ClaimsPrincipal Identity: {Identity}) with file size {FileSize} exceeding limit {Limit}.", User.Identity?.Name ?? "N/A", model.File.Length, maxFileSize);
+                return BadRequest($"File size exceeds the {maxFileSize / 1024 / 1024} MB limit.");
+            }
 
-            var sanitizedGroupName = SanitizeFolderName(userPrimaryGroup);
-            var userDirectoryPath = Path.Combine(_uploadBasePath, sanitizedGroupName, userId.ToString());
-
+            int userId;
+            string userPrimaryGroup;
             try
             {
-                if (!Directory.Exists(userDirectoryPath))
-                {
-                    Directory.CreateDirectory(userDirectoryPath);
-                    _logger.LogInformation("Created user upload directory: {UserDirPath}", userDirectoryPath);
-                }
+                // Парсинг данных пользователя из токена
+                userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                // Берем первую группу или 'Default'
+                userPrimaryGroup = User.FindAll("group").FirstOrDefault()?.Value ?? "Default";
+                _logger.LogInformation("UploadFile request by User ID {UserId}, Primary Group: {Group}", userId, userPrimaryGroup);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create user upload directory: {UserDirPath} for UserID: {UserId}", userDirectoryPath, userId);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error: Could not prepare storage location.");
+                _logger.LogError(ex, "Error parsing user claims during file upload. User: {Identity}", User.Identity?.Name ?? "N/A");
+                return Unauthorized("Invalid user claims in token.");
             }
 
-            var storedFileName = $"{Guid.NewGuid()}{Path.GetExtension(model.File.FileName)}";
-            var filePath = Path.Combine(userDirectoryPath, storedFileName);
+            // Формирование пути для сохранения файла
+            string safeGroupName = string.Join("_", userPrimaryGroup.Split(Path.GetInvalidFileNameChars())); // Делаем имя папки безопасным
+            string userDirectoryPath = Path.Combine(_uploadBasePath, safeGroupName, userId.ToString());
 
             try
             {
-                _logger.LogDebug("Attempting to save uploaded file to: {FilePath}", filePath);
-                using (var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
-                {
-                    await model.File.CopyToAsync(stream, HttpContext.RequestAborted);
-                }
-                _logger.LogInformation("Successfully saved uploaded file to: {FilePath}", filePath);
+                Directory.CreateDirectory(userDirectoryPath); // Создаем директорию, если её нет
+                _logger.LogDebug("Ensured user directory exists: {Path}", userDirectoryPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create user directory for upload: {Path}", userDirectoryPath);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error creating user directory.");
+            }
 
-                var metadata = new FileMetadata
+            // Генерация уникального имени файла и полного пути
+            var storedFileName = $"{Guid.NewGuid()}{Path.GetExtension(model.File.FileName)}";
+            var filePath = Path.Combine(userDirectoryPath, storedFileName);
+            _logger.LogInformation("Generated target file path: {FilePath}", filePath);
+
+            FileMetadata metadata = null; // Объявляем заранее для доступа после try
+            try
+            {
+                // Копируем файл на диск
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.File.CopyToAsync(stream);
+                }
+                _logger.LogInformation("File content saved successfully to {FilePath} by User ID {UserId}", filePath, userId);
+
+                // Сохраняем метаданные в хранилище (например, в памяти или БД)
+                metadata = new FileMetadata
                 {
                     Id = Guid.NewGuid(),
                     OriginalName = model.File.FileName,
-                    StoredFileName = storedFileName,
+                    StoredFileName = storedFileName, // Важно сохранить уникальное имя
                     ContentType = model.File.ContentType,
                     SizeBytes = model.File.Length,
                     UploadedAt = DateTime.UtcNow,
                     UserId = userId,
-                    UserGroup = userPrimaryGroup,
-                    FilePath = filePath
+                    UserGroup = userPrimaryGroup, // Сохраняем основную группу на момент загрузки
+                    FilePath = filePath // Сохраняем полный путь для скачивания/удаления
                 };
                 await _metadataService.AddMetadataAsync(metadata);
-                _logger.LogInformation("Metadata saved for file ID: {FileId}, Original Name: {OriginalName}", metadata.Id, metadata.OriginalName);
+                _logger.LogInformation("Metadata saved for file {FileId}", metadata.Id);
 
-                // Возвращаем 201 Created или 200 OK
+                // Асинхронно уведомляем SearchService об индексации (не ждем ответа)
+                if (metadata != null && metadata.Id != Guid.Empty)
+                {
+                    // Используем Task.Run для запуска в фоновом потоке
+                    _ = Task.Run(() => NotifySearchServiceIndexAsync(metadata.Id, metadata.UserId));
+                }
+
+                // Возвращаем успешный результат клиенту
                 return Ok(new { FileId = metadata.Id, FileName = metadata.OriginalName, Group = metadata.UserGroup });
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogInformation("File upload cancelled by client for UserID: {UserId}, Original Name: {FileName}", userId, model.File.FileName);
-                TryDeleteFile(filePath);
-                return StatusCode(StatusCodes.Status499ClientClosedRequest, "Client closed request during file upload.");
-            }
-            catch (IOException ex)
-            {
-                _logger.LogError(ex, "IO error saving uploaded file {FilePath} for UserID: {UserId}", filePath, userId);
-                TryDeleteFile(filePath);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error: Could not save file data.");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Generic error during file upload process for UserID: {UserId}, Original Name: {FileName}", userId, model.File.FileName);
-                TryDeleteFile(filePath);
+                _logger.LogError(ex, "Error during file upload processing for User ID {UserId}, Target Path: {FilePath}", userId, filePath);
+                // Пытаемся удалить частично загруженный файл при ошибке
+                if (System.IO.File.Exists(filePath))
+                {
+                    try { System.IO.File.Delete(filePath); _logger.LogWarning("Partial file deleted due to error: {FilePath}", filePath); }
+                    catch (Exception delEx) { _logger.LogError(delEx, "Failed to delete partial file after error: {FilePath}", filePath); }
+                }
                 return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error during file upload.");
             }
         }
 
-        // --- Получение списка файлов ---
+        // --- Получение списка файлов (для всех ролей, с разной фильтрацией) ---
         [HttpGet("files")]
         [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
         public async Task<IActionResult> GetFiles()
         {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
-            var userGroups = User.FindAll("group").Select(c => c.Value.Trim()).Where(g => !string.IsNullOrEmpty(g)).ToList();
-
-            _logger.LogInformation("GetFiles request by UserID: {UserId}, Role: {UserRole}", userId, userRole);
+            int userId;
+            string userRole;
+            List<string> userGroups;
+            try
+            {
+                userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                userRole = User.FindFirstValue(ClaimTypes.Role);
+                userGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                _logger.LogInformation("GetFiles request by User ID {UserId}, Role {UserRole}", userId, userRole);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing user claims during GetFiles. User: {Identity}", User.Identity?.Name ?? "N/A");
+                return Unauthorized("Invalid user claims in token.");
+            }
 
             IEnumerable<FileMetadata> files;
-            object result;
+            IEnumerable<object> result; // Используем object для анонимных типов ответа
 
             try
             {
+                // В зависимости от роли получаем соответствующий список файлов
                 if (userRole == AppRoles.SuperAdmin)
                 {
                     files = await _metadataService.GetAllMetadataAsync();
-                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt }).ToList();
-                    _logger.LogInformation("SuperAdmin ({UserId}) retrieved {FileCount} total files.", userId, (result as List<dynamic>)?.Count ?? 0);
+                    // ВА и Админ видят ID пользователя и ContentType
+                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
                 }
                 else if (userRole == AppRoles.Admin)
                 {
-                    if (!userGroups.Any())
-                    {
-                        _logger.LogInformation("Admin ({UserId}) has no groups, retrieving own files only.", userId);
-                        files = await _metadataService.GetMetadataByUserAsync(userId);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Admin ({UserId}) retrieving files for groups [{ManagedGroups}] and own files.", userId, string.Join(", ", userGroups));
-                        files = await _metadataService.GetMetadataByUserGroupsAsync(userGroups, userId);
-                    }
-                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt }).ToList();
-                    _logger.LogInformation("Admin ({UserId}) retrieved {FileCount} files.", userId, (result as List<dynamic>)?.Count ?? 0);
+                    files = await _metadataService.GetMetadataByUserGroupsAsync(userGroups, userId);
+                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
                 }
                 else // UserRole == AppRoles.User
                 {
                     files = await _metadataService.GetMetadataByUserAsync(userId);
-                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.SizeBytes, f.UploadedAt }).ToList();
-                    _logger.LogInformation("User ({UserId}) retrieved {FileCount} own files.", userId, (result as List<dynamic>)?.Count ?? 0);
+                    // Пользователь видит только свои файлы, UserId ему не нужен в списке
+                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.SizeBytes, f.UploadedAt, f.ContentType });
                 }
-
-                // --- Логирование перед возвратом ---
-                var resultList = result as System.Collections.IList;
-                var resultType = result?.GetType().FullName ?? "null";
-                _logger.LogInformation("--- FileService GetFiles: Returning Ok. Result Type: {ResultType}, Count: {ResultCount}", resultType, resultList?.Count ?? -1);
-                if (resultList != null && resultList.Count > 0)
-                {
-                    try
-                    {
-                        var firstElementJson = JsonSerializer.Serialize(resultList[0]);
-                        _logger.LogInformation("--- FileService GetFiles: First element sample: {FirstElementJson}", firstElementJson);
-                    }
-                    catch (Exception jsonEx)
-                    {
-                        _logger.LogWarning(jsonEx, "Could not serialize first element for logging.");
-                    }
-                }
-                else if (resultList != null && resultList.Count == 0)
-                {
-                    _logger.LogInformation("--- FileService GetFiles: Result list is empty.");
-                }
-                else
-                {
-                    _logger.LogWarning("--- FileService GetFiles: Result is not a list or is null.");
-                    if (result != null)
-                        return StatusCode(500, "Internal error: File list data format is incorrect.");
-                }
-
-                return Ok(result ?? new List<object>()); // 200 OK
+                _logger.LogInformation("Returning {FileCount} files for User ID {UserId}", files.Count(), userId);
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving file list for UserID: {UserId}, Role: {UserRole}", userId, userRole);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred while retrieving files.");
+                _logger.LogError(ex, "Error retrieving files for User ID {UserId}", userId);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving files.");
             }
         }
 
-
-        // --- Скачивание файла ---
-        [HttpGet("download/{id:guid}")]
+        // --- Поиск файлов ---
+        [HttpGet("search")]
         [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
-        public async Task<IActionResult> DownloadFile(Guid id)
+        public async Task<IActionResult> SearchFiles([FromQuery] string term)
         {
-            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
-            _logger.LogInformation("DownloadFile request for ID: {FileId} by UserID: {UserId}, Role: {UserRole}", id, currentUserId, currentUserRole);
+            if (string.IsNullOrWhiteSpace(term))
+            {
+                _logger.LogInformation("Search request with empty term.");
+                return Ok(Enumerable.Empty<object>()); // Пустой запрос - пустой результат
+            }
 
-            FileMetadata metadata;
+            int userId;
+            string userRole;
+            List<string> userGroups;
+            try
+            {
+                userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                userRole = User.FindFirstValue(ClaimTypes.Role);
+                userGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                _logger.LogInformation("SearchFiles request by User ID {UserId}, Role {UserRole}, Term: '{SearchTerm}'", userId, userRole, term);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing user claims during SearchFiles. User: {Identity}", User.Identity?.Name ?? "N/A");
+                return Unauthorized("Invalid user claims in token.");
+            }
+
+            try
+            {
+                // Вызываем сервис поиска
+                var files = await _metadataService.SearchMetadataAsync(term, userId, userRole, userGroups);
+
+                // Форматируем результат аналогично GetFiles
+                IEnumerable<object> result;
+                if (userRole == AppRoles.SuperAdmin || userRole == AppRoles.Admin)
+                {
+                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
+                }
+                else // User
+                {
+                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.SizeBytes, f.UploadedAt, f.ContentType });
+                }
+
+                _logger.LogInformation("Search returned {FileCount} files for User ID {UserId}", files.Count(), userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching files for User ID {UserId}, Term: '{SearchTerm}'", userId, term);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while searching files.");
+            }
+        }
+
+        // --- Скачивание/Предпросмотр файла ---
+        [HttpGet("download/{id}")]
+        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
+        public async Task<IActionResult> DownloadFile(Guid id, [FromQuery] bool inline = false)
+        {
+            _logger.LogInformation("Download/Preview request for File ID {FileId}, Inline: {IsInline}", id, inline);
+            int currentUserId;
+            string currentUserRole;
+            List<string> currentUserGroups;
+            try
+            {
+                currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+                currentUserGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                _logger.LogDebug("Requesting user details - ID: {UserId}, Role: {UserRole}, Groups: [{Groups}]", currentUserId, currentUserRole, string.Join(",", currentUserGroups));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error parsing user claims during DownloadFile for File ID {FileId}. User: {Identity}", id, User.Identity?.Name ?? "N/A");
+                return Unauthorized("Invalid user claims in token.");
+            }
+
+            // Получаем метаданные
+            FileMetadata metadata = null;
             try
             {
                 metadata = await _metadataService.GetMetadataByIdAsync(id);
             }
-            catch (Exception ex)
+            catch (Exception exMeta)
             {
-                _logger.LogError(ex, "Error retrieving metadata for File ID: {FileId} during download request by UserID: {UserId}", id, currentUserId);
+                _logger.LogError(exMeta, "Error retrieving metadata for File ID {FileId}", id);
                 return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information.");
             }
 
             if (metadata == null)
             {
-                _logger.LogWarning("DownloadFile failed: Metadata not found for ID: {FileId}. Request by UserID: {UserId}", id, currentUserId);
-                return NotFound("File metadata not found."); // 404 Not Found
+                _logger.LogWarning("File metadata not found for ID {FileId}", id);
+                return NotFound("File metadata not found.");
             }
+            _logger.LogDebug("Metadata retrieved for File ID {FileId}. Owner ID: {OwnerId}, Group: {OwnerGroup}, Path: {FilePath}", id, metadata.UserId, metadata.UserGroup, metadata.FilePath);
 
-            // Проверка прав доступа
-            bool canDownload = CheckDownloadPermissions(metadata, currentUserId, currentUserRole);
+
+            // --- Проверка прав доступа ---
+            bool canDownload = false;
+            if (currentUserRole == AppRoles.SuperAdmin) canDownload = true;
+            else if (currentUserRole == AppRoles.Admin) canDownload = (metadata.UserId == currentUserId) || (metadata.UserGroup != null && currentUserGroups.Contains(metadata.UserGroup));
+            else if (currentUserRole == AppRoles.User) canDownload = (metadata.UserId == currentUserId);
 
             if (!canDownload)
             {
-                _logger.LogWarning("Forbidden download attempt for File ID: {FileId} (Owner: {OwnerId}) by UserID: {RequesterId}, Role: {RequesterRole}",
-                    id, metadata.UserId, currentUserId, currentUserRole);
-                return Forbid("You do not have permission to download this file."); // 403 Forbidden
+                _logger.LogWarning("Access DENIED for User ID {UserId} (Role: {UserRole}) to download File ID {FileId} owned by User ID {OwnerId}", currentUserId, currentUserRole, id, metadata.UserId);
+                return Forbid("You do not have permission to access this file.");
             }
+            _logger.LogInformation("Access GRANTED for User ID {UserId} to download File ID {FileId}", currentUserId, id);
+            // --- Конец проверки прав доступа ---
 
-            // Проверяем существование файла на диске
-            if (string.IsNullOrEmpty(metadata.FilePath) || !System.IO.File.Exists(metadata.FilePath))
+
+            // --- Проверка пути и файла на диске ---
+            if (string.IsNullOrEmpty(metadata.FilePath))
             {
-                _logger.LogError("DownloadFile failed: File data missing on server for File ID: {FileId}. Expected path: {FilePath}. Request by UserID: {UserId}", id, metadata.FilePath ?? "N/A", currentUserId);
-                return NotFound("File data is missing on the server."); // 404 Not Found
+                _logger.LogError("File path is MISSING in metadata for File ID {FileId}", id);
+                return NotFound("File path information is missing.");
             }
+            _logger.LogInformation("File path from metadata for File ID {FileId} is: {FilePath}", id, metadata.FilePath);
+            // --- Конец проверки пути ---
 
+
+            // Основной try блок для работы с файлом
+            FileStream fileStream = null; // Объявляем заранее для доступа в catch/finally
             try
             {
-                _logger.LogDebug("Streaming file: {FilePath} for download (File ID: {FileId}).", metadata.FilePath, id);
-                var fileStream = new FileStream(metadata.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
-                return File(fileStream, metadata.ContentType ?? "application/octet-stream", metadata.OriginalName); // 200 OK с файлом
+                // Проверку существования переносим внутрь try
+                _logger.LogInformation("Checking file existence for path: {FilePath}", metadata.FilePath);
+                if (!System.IO.File.Exists(metadata.FilePath))
+                {
+                    _logger.LogError("File.Exists returned FALSE for path: {FilePath} (File ID: {FileId})", metadata.FilePath, id);
+                    return NotFound("File data is missing on the server (checked existence).");
+                }
+                _logger.LogInformation("File.Exists returned TRUE for path: {FilePath}", metadata.FilePath);
+
+
+                _logger.LogDebug("Creating FileStream for path: {FilePath}", metadata.FilePath);
+                // FileMode.Open, FileAccess.Read, FileShare.Read - для чтения существующего файла
+                fileStream = new FileStream(metadata.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+                _logger.LogInformation("FileStream created for {FilePath}. CanRead: {CanRead}, Length: {Length}", metadata.FilePath, fileStream.CanRead, fileStream.Length);
+
+                // Проверка на нулевую длину файла
+                if (fileStream.Length == 0)
+                {
+                    _logger.LogWarning("FileStream Length is 0 for path: {FilePath}. Returning NotFound.", metadata.FilePath);
+                    await fileStream.DisposeAsync(); // Закрываем пустой поток
+                    fileStream = null; // Обнуляем, чтобы не попасть в finally
+                    return NotFound("File appears to be empty on the server.");
+                }
+
+                // Устанавливаем Content-Disposition
+                var contentDisposition = new ContentDispositionHeaderValue(inline ? "inline" : "attachment");
+                contentDisposition.SetHttpFileName(metadata.OriginalName); // Используем безопасный метод
+                Response.Headers.Append("Content-Disposition", contentDisposition.ToString());
+                _logger.LogInformation("Serving file {FileId} ({FileName}) with Content-Disposition: {Disposition}", id, metadata.OriginalName, contentDisposition.DispositionType);
+
+                // Возвращаем файл как поток. FileStreamResult сам позаботится о закрытии потока fileStream.
+                // Важно: не используем using для fileStream здесь, т.к. File() должен управлять его временем жизни.
+                return File(fileStream, metadata.ContentType ?? "application/octet-stream", enableRangeProcessing: true);
             }
+            // Блоки catch для разных ошибок чтения файла
             catch (FileNotFoundException ex)
             {
-                _logger.LogError(ex, "DownloadFile error: File disappeared between check and open for File ID: {FileId}, Path: {FilePath}", id, metadata.FilePath);
-                return NotFound("File data disappeared unexpectedly."); // 404 Not Found
+                _logger.LogError(ex, "FileNotFoundException occurred while trying to open File ID {FileId} at path: {FilePath}", id, metadata.FilePath);
+                if (fileStream != null) await fileStream.DisposeAsync(); // Закрываем, если открылся
+                return NotFound("File data is missing on the server (FileNotFoundException).");
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                _logger.LogError(ex, "DirectoryNotFoundException occurred while trying to open File ID {FileId} at path: {FilePath}", id, metadata.FilePath);
+                if (fileStream != null) await fileStream.DisposeAsync();
+                return NotFound("File directory missing on the server.");
             }
             catch (IOException ex)
             {
-                _logger.LogError(ex, "IO error reading file for download: {FilePath}", metadata.FilePath);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error reading file data."); // 500 Internal Server Error
+                _logger.LogError(ex, "IO Error reading file {FileId} for download/preview. Path: {FilePath}", id, metadata.FilePath);
+                if (fileStream != null) await fileStream.DisposeAsync();
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Error reading file from storage.");
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex) // Ошибка прав доступа к файлу на сервере
             {
-                _logger.LogError(ex, "Generic error during file download for File ID: {FileId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred while processing the file download."); // 500 Internal Server Error
+                _logger.LogError(ex, "UnauthorizedAccessException reading file {FileId} for download/preview. Path: {FilePath}", id, metadata.FilePath);
+                if (fileStream != null) await fileStream.DisposeAsync();
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Permission error reading file from storage.");
             }
+            catch (Exception ex) // Другие непредвиденные ошибки
+            {
+                _logger.LogError(ex, "An unexpected error occurred while processing file download/preview for File ID {FileId}", id);
+                if (fileStream != null) await fileStream.DisposeAsync(); // Закрываем и здесь
+                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
+            }
+            // Блок finally здесь не нужен, т.к. FileStreamResult сам закроет поток,
+            // а в catch блоках мы закрываем его вручную перед возвратом ошибки.
         }
 
+
         // --- Удаление файла ---
-        [HttpDelete("files/{id:guid}")]
-        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin}")] // Роли, которые могут
+        [HttpDelete("files/{id}")]
+        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin}")] // Только ВА и Админы могут удалять
         public async Task<IActionResult> DeleteFile(Guid id)
         {
-            var currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
-            _logger.LogInformation("DeleteFile request for ID: {FileId} by UserID: {UserId}, Role: {UserRole}", id, currentUserId, currentUserRole);
+            _logger.LogInformation("Delete request for File ID {FileId}", id);
+            int currentUserId;
+            string currentUserRole;
+            List<string> currentUserGroups;
 
-            FileMetadata metadata;
+            // Оборачиваем весь основной блок в try-catch
             try
             {
-                metadata = await _metadataService.GetMetadataByIdAsync(id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving metadata for File ID: {FileId} during delete request by UserID: {UserId}", id, currentUserId);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information for deletion.");
-            }
+                // --- Парсим клеймы пользователя ВНУТРИ try ---
+                try
+                {
+                    currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                    currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+                    currentUserGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                    _logger.LogDebug("Requesting user for delete - ID: {UserId}, Role: {UserRole}", currentUserId, currentUserRole);
+                }
+                catch (Exception exParse)
+                {
+                    _logger.LogError(exParse, "Error parsing user claims during DeleteFile for File ID {FileId}. User: {Identity}", id, User.Identity?.Name ?? "N/A");
+                    return Unauthorized("Invalid user claims in token.");
+                }
 
 
-            if (metadata == null)
-            {
-                _logger.LogWarning("DeleteFile: Metadata not found for ID: {FileId}. Request by UserID: {UserId}. Returning NotFound.", id, currentUserId);
-                return NotFound("File metadata not found."); // 404 Not Found
-            }
+                // --- Получаем метаданные ВНУТРИ try ---
+                FileMetadata metadata = null;
+                try
+                {
+                    metadata = await _metadataService.GetMetadataByIdAsync(id);
+                }
+                catch (Exception exMeta)
+                {
+                    _logger.LogError(exMeta, "Error retrieving metadata for File ID {FileId} during delete operation", id);
+                    return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information for deletion.");
+                }
 
-            // Проверка прав доступа на удаление
-            bool canDelete = CheckDeletePermissions(metadata, currentUserId, currentUserRole);
+                if (metadata == null)
+                {
+                    _logger.LogWarning("Delete request for non-existent File ID {FileId}", id);
+                    return NotFound("File metadata not found.");
+                }
+                _logger.LogDebug("Metadata found for deletion. File ID {FileId}, Owner ID: {OwnerId}", id, metadata.UserId);
 
-            if (!canDelete)
-            {
-                _logger.LogWarning("Forbidden delete attempt for File ID: {FileId} (Owner: {OwnerId}) by UserID: {RequesterId}, Role: {RequesterRole}",
-                    id, metadata.UserId, currentUserId, currentUserRole);
-                return Forbid("You do not have permission to delete this file."); // 403 Forbidden
-            }
 
-            try
-            {
-                // Удаляем метаданные и получаем путь к файлу
+                // --- Проверка прав на удаление ВНУТРИ try ---
+                bool canDelete = false;
+                if (currentUserRole == AppRoles.SuperAdmin) canDelete = true;
+                else if (currentUserRole == AppRoles.Admin) canDelete = (metadata.UserId == currentUserId) || (metadata.UserGroup != null && currentUserGroups.Contains(metadata.UserGroup));
+
+                if (!canDelete)
+                {
+                    _logger.LogWarning("Access DENIED for User ID {UserId} to delete File ID {FileId}", currentUserId, id);
+                    return Forbid("You do not have permission to delete this file.");
+                }
+                _logger.LogInformation("Delete access GRANTED for User ID {UserId} to File ID {FileId}", currentUserId, id);
+                // --- Конец проверки прав ---
+
+
+                // --- Удаляем метаданные и файл ВНУТРИ try ---
                 var filePath = await _metadataService.DeleteMetadataAndFileAsync(id);
 
                 if (filePath != null)
                 {
-                    TryDeleteFile(filePath); // Используем хелпер для удаления файла с диска
+                    // --- Уведомление SearchService об удалении (асинхронно) ---
+                    _ = Task.Run(() => NotifySearchServiceDeleteAsync(id));
+                    // -------------------------------------------
+
+                    _logger.LogInformation("Attempting to delete file from disk: {FilePath}", filePath);
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(filePath);
+                            _logger.LogInformation("File deleted successfully from disk: {FilePath} by User ID {UserId}", filePath, currentUserId);
+                            // Опционально: Проверить, пуста ли папка пользователя/группы и удалить ее?
+                        }
+                        // Ловим конкретные ошибки при удалении файла
+                        catch (IOException ioEx) { _logger.LogError(ioEx, "IO Error deleting file from disk: {FilePath}. Metadata was removed for {FileId}.", filePath, id); }
+                        catch (UnauthorizedAccessException uaEx) { _logger.LogError(uaEx, "Unauthorized access deleting file from disk: {FilePath}. Metadata removed for {FileId}.", filePath, id); }
+                        catch (Exception fileDelEx) { _logger.LogError(fileDelEx, "Unexpected error deleting file from disk: {FilePath}. Metadata removed for {FileId}.", filePath, id); }
+                    }
+                    else { _logger.LogWarning("File not found on disk during deletion: {FilePath}. Metadata removed for {FileId}.", filePath, id); }
                 }
                 else
                 {
-                    _logger.LogInformation("DeleteFile: Metadata for ID {FileId} was already deleted (or delete failed silently).", id);
+                    // Метаданные не найдены (кто-то удалил раньше?)
+                    _logger.LogWarning("DeleteMetadataAndFileAsync returned null path for File ID {FileId}, possibly already deleted by another request.", id);
+                    return NotFound("File metadata not found (or already deleted).");
                 }
 
-                _logger.LogInformation("Successfully processed delete request for File ID: {FileId} by UserID: {UserId}", id, currentUserId);
+                // Если все прошло успешно (или с ошибками удаления файла, но не метаданных)
                 return NoContent(); // 204 No Content
             }
-            catch (Exception ex) // Ловим ошибки при удалении метаданных или файла
+            // --- Ловим другие внешние ошибки ---
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during delete process for File ID: {FileId}. Request by UserID: {UserId}", id, currentUserId);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the file."); // 500 Internal Server Error
+                _logger.LogError(ex, "An unexpected error occurred during the file deletion process for File ID {FileId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the file.");
             }
         }
 
 
-        // --- Вспомогательные методы ---
-
-        private bool CheckDownloadPermissions(FileMetadata metadata, int currentUserId, string currentUserRole)
+        // --- НОВЫЙ ВНУТРЕННИЙ ЭНДПОИНТ для SearchService ---
+        [HttpGet("internal/download/{id}")]
+        [AllowAnonymous] // <-- Разрешаем анонимный доступ, но доступ должен ограничиваться сетью Docker
+        public async Task<IActionResult> InternalDownloadFile(Guid id)
         {
-            if (currentUserRole == AppRoles.SuperAdmin) return true; // ВА может все
-            if (metadata.UserId == currentUserId) return true; // Владелец может скачать свой файл
+            // --- !!! ВАЖНО: Добавьте проверку IP или другой механизм,
+            // чтобы убедиться, что этот эндпоинт вызывается только из доверенной сети (например, SearchService) !!! ---
+            // Пример (упрощенный, зависит от настроек сети):
+            // var remoteIp = HttpContext.Connection.RemoteIpAddress;
+            // if (remoteIp == null || !IsInternalNetwork(remoteIp)) { // Нужна функция IsInternalNetwork
+            //      _logger.LogWarning("Unauthorized access attempt to internal download endpoint from IP: {RemoteIp}", remoteIp);
+            //      return Forbid();
+            // }
+            _logger.LogInformation("Internal download request received for File ID {FileId}", id);
 
-            if (currentUserRole == AppRoles.Admin)
-            {
-                // Админ может скачать файл пользователя из его групп
-                var currentUserGroups = User.FindAll("group")
-                                            .Select(c => c.Value?.Trim())
-                                            .Where(g => !string.IsNullOrEmpty(g))
-                                            .ToList();
-                // Проверяем, что у админа есть группы и группа файла не пустая и входит в группы админа
-                bool isFileInManagedGroup = currentUserGroups.Any()
-                                           && !string.IsNullOrEmpty(metadata.UserGroup)
-                                           && currentUserGroups.Contains(metadata.UserGroup);
-                return isFileInManagedGroup;
-            }
+            FileMetadata metadata = null;
+            try { metadata = await _metadataService.GetMetadataByIdAsync(id); }
+            catch (Exception exMeta) { _logger.LogError(exMeta, "InternalDownload: Error retrieving metadata for {FileId}", id); return StatusCode(500); }
 
-            return false; // Обычный пользователь не может скачать чужой файл
-        }
+            if (metadata == null || string.IsNullOrEmpty(metadata.FilePath)) { _logger.LogWarning("InternalDownload: Metadata or path not found for {FileId}", id); return NotFound(); }
 
-        private bool CheckDeletePermissions(FileMetadata metadata, int currentUserId, string currentUserRole)
-        {
-            // Пользователи (User) не могут удалять файлы через этот endpoint
-            if (currentUserRole == AppRoles.User) return false;
+            _logger.LogInformation("InternalDownload: Attempting access to {FilePath}", metadata.FilePath);
 
-            // Для Admin и SuperAdmin логика удаления совпадает с логикой скачивания в данном сценарии
-            return CheckDownloadPermissions(metadata, currentUserId, currentUserRole);
-        }
-
-
-        private static readonly char[] _invalidChars = Path.GetInvalidFileNameChars().Concat(Path.GetInvalidPathChars()).Distinct().ToArray();
-        private string SanitizeFolderName(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name)) return "_invalid_";
-
-            // Заменяем недопустимые символы на подчеркивание
-            string sanitized = new string(name.Select(ch => _invalidChars.Contains(ch) ? '_' : ch).ToArray());
-
-            // Убираем точки и пробелы в начале/конце
-            sanitized = sanitized.Trim('.', ' ');
-
-            // Заменяем множественные подчеркивания на одно
-            while (sanitized.Contains("__")) sanitized = sanitized.Replace("__", "_");
-
-            // Если имя стало пустым после очистки
-            if (string.IsNullOrWhiteSpace(sanitized)) return "_empty_";
-
-            // Ограничение длины (опционально)
-            const int MaxLength = 100;
-            if (sanitized.Length > MaxLength) sanitized = sanitized.Substring(0, MaxLength);
-
-            _logger.LogDebug("Sanitized folder name: '{OriginalName}' -> '{SanitizedName}'", name, sanitized);
-            return sanitized;
-        }
-
-        private void TryDeleteFile(string filePath)
-        {
-            if (string.IsNullOrEmpty(filePath)) return;
+            if (!System.IO.File.Exists(metadata.FilePath)) { _logger.LogError("InternalDownload: File does not exist at {FilePath}", metadata.FilePath); return NotFound(); }
 
             try
             {
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                    _logger.LogInformation("Successfully deleted physical file: {FilePath}", filePath);
-                }
-                else
-                {
-                    _logger.LogWarning("Attempted to delete file, but it does not exist: {FilePath}", filePath);
-                }
-            }
-            catch (IOException ex)
-            {
-                _logger.LogWarning(ex, "IO error deleting file: {FilePath}", filePath);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                _logger.LogWarning(ex, "Unauthorized access trying to delete file: {FilePath}", filePath);
+                // Возвращаем файл как поток, чтобы SearchService мог его обработать
+                var fileStream = new FileStream(metadata.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+                _logger.LogInformation("InternalDownload: Serving file {FileId}, Length: {Length}", id, fileStream.Length);
+                // Возвращаем как FileStreamResult, он сам закроет поток
+                // Указываем ContentType, т.к. SearchService (Tika) может его использовать
+                return File(fileStream, metadata.ContentType ?? "application/octet-stream");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error trying to delete file: {FilePath}", filePath);
+                _logger.LogError(ex, "InternalDownload: Error serving file {FileId}", id);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to serve internal file download.");
             }
         }
-    }
+        // --- Конец нового эндпоинта ---
+
+
+        // --- Вспомогательные методы для уведомления SearchService ---
+        private async Task NotifySearchServiceIndexAsync(Guid fileId, int userId)
+        {
+            string searchServiceUrl = "http://searchservice/api/index/index";
+            FileMetadata metadata = null; // Получаем метаданные, чтобы передать имя и тип
+            try { metadata = await _metadataService.GetMetadataByIdAsync(fileId); } catch { } // Игнорируем ошибку здесь
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("NotifySearchServiceIndexAsync: Could not retrieve metadata for File ID {FileId}. Skipping notification.", fileId);
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("Notifying SearchService to index File ID {FileId} (Name: {FileName}, Type: {ContentType}) for User ID {UserId} at {Url}",
+                    fileId, metadata.OriginalName, metadata.ContentType, userId, searchServiceUrl);
+                using var client = _httpClientFactory.CreateClient("SearchServiceClient");
+                client.Timeout = TimeSpan.FromSeconds(30);
+                // Передаем новые поля
+                var payload = new
+                {
+                    FileId = fileId,
+                    UserId = userId,
+                    OriginalName = metadata.OriginalName, // <-- Передаем
+                    ContentType = metadata.ContentType   // <-- Передаем
+                };
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+
+                using var response = await client.PostAsync(searchServiceUrl, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("SearchService successfully acknowledged indexing request for File ID {FileId}", fileId);
+                }
+                else
+                {
+                    var errorBody = await response.Content.ReadAsStringAsync(); // Читаем тело ошибки
+                    _logger.LogWarning("SearchService indexing request failed for File ID {FileId}. Status: {StatusCode}, Reason: {Reason}, Body: {ErrorBody}",
+                       fileId, response.StatusCode, response.ReasonPhrase, errorBody.Substring(0, Math.Min(errorBody.Length, 500))); // Логируем начало тела ошибки
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send indexing request to SearchService ({Url}) for File ID {FileId}", searchServiceUrl, fileId);
+                // Здесь не бросаем исключение, чтобы не сломать основной поток загрузки
+            }
+        }
+
+        private async Task NotifySearchServiceDeleteAsync(Guid fileId)
+        {
+            string searchServiceUrl = $"http://searchservice/api/index/index/{fileId}"; // URL внутри Docker сети
+            try
+            {
+                _logger.LogInformation("Notifying SearchService to delete index for File ID {FileId} at {Url}", fileId, searchServiceUrl);
+                using var client = _httpClientFactory.CreateClient("SearchServiceClient");
+                client.Timeout = TimeSpan.FromSeconds(10);
+
+                using var response = await client.DeleteAsync(searchServiceUrl);
+
+                if (response.IsSuccessStatusCode)
+                { // NoContent (204) тоже IsSuccessStatusCode
+                    _logger.LogInformation("SearchService successfully acknowledged index deletion request for File ID {FileId}", fileId);
+                }
+                else
+                {
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("SearchService index deletion request failed for File ID {FileId}. Status: {StatusCode}, Reason: {Reason}, Body: {ErrorBody}",
+                       fileId, response.StatusCode, response.ReasonPhrase, errorBody.Substring(0, Math.Min(errorBody.Length, 500)));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send index deletion request to SearchService ({Url}) for File ID {FileId}", searchServiceUrl, fileId);
+            }
+        }
+
+    } // --- Конец класса FileController ---
+
+    // Модель для загрузки файла
     public class FileUploadModel
     {
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "File is required.")]
+        [System.ComponentModel.DataAnnotations.Required]
         public Microsoft.AspNetCore.Http.IFormFile File { get; set; }
     }
-}
+} // --- Конец namespace ---

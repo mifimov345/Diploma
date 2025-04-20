@@ -1,4 +1,5 @@
-﻿using FileService.Models;
+﻿using FileService.Controllers;
+using FileService.Models;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -15,10 +16,12 @@ namespace FileService.Services
         Task<IEnumerable<FileMetadata>> GetAllMetadataAsync();
         Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId);
         Task<string> DeleteMetadataAndFileAsync(Guid id);
+        Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups); // Поиск
     }
 
     public class FileMetadataService : IFileMetadataService
     {
+        // Потокобезопасный словарь для хранения в памяти
         private readonly ConcurrentDictionary<Guid, FileMetadata> _metadataStore = new();
 
         public Task AddMetadataAsync(FileMetadata metadata)
@@ -35,6 +38,7 @@ namespace FileService.Services
 
         public Task<IEnumerable<FileMetadata>> GetMetadataByUserAsync(int userId)
         {
+            // Используем .ToList() здесь, чтобы создать копию и избежать проблем с многопоточностью при итерации
             var userFiles = _metadataStore.Values.Where(m => m.UserId == userId).ToList();
             return Task.FromResult<IEnumerable<FileMetadata>>(userFiles);
         }
@@ -44,16 +48,18 @@ namespace FileService.Services
             return Task.FromResult<IEnumerable<FileMetadata>>(_metadataStore.Values.ToList());
         }
 
-        // Получаем файлы пользователей, чья UserGroup (при загрузке) входит в список groupNames и файлы админа
         public Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId)
         {
             if (groupNames == null || !groupNames.Any())
-                return Task.FromResult(Enumerable.Empty<FileMetadata>());
+            {
+                return GetMetadataByUserAsync(requestingAdminId);
+            }
 
             var groupFiles = _metadataStore.Values
                 .Where(m => (m.UserGroup != null && groupNames.Contains(m.UserGroup)) || m.UserId == requestingAdminId) // Файлы из групп ИЛИ собственные файлы админа
                 .Distinct() // Убираем дубликаты, если админ сам в этой группе
-                .ToList();
+                .ToList(); // Создаем копию
+
             return Task.FromResult<IEnumerable<FileMetadata>>(groupFiles);
         }
 
@@ -61,9 +67,37 @@ namespace FileService.Services
         {
             if (_metadataStore.TryRemove(id, out var metadata))
             {
-                return Task.FromResult(metadata.FilePath); // Возвращаем путь для физического удаления
+                return Task.FromResult(metadata.FilePath);
             }
-            return Task.FromResult<string>(null); // Файл не найден в метаданных
+            return Task.FromResult<string>(null);
+        }
+
+        // Поиск файлов по имени
+        public Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Task.FromResult(Enumerable.Empty<FileMetadata>()); // Пустой запрос - пустой результат
+            }
+
+            // Приводим к нижнему регистру для поиска без учета регистра
+            var term = searchTerm.Trim().ToLowerInvariant();
+
+            IEnumerable<FileMetadata> query = _metadataStore.Values;
+
+            if (currentUserRole == AppRoles.Admin)
+            {
+                query = query.Where(m => m.UserId == currentUserId || (m.UserGroup != null && currentUserGroups.Contains(m.UserGroup)));
+            }
+            else if (currentUserRole == AppRoles.User)
+            {
+                query = query.Where(m => m.UserId == currentUserId);
+            }
+
+            var results = query.Where(m => m.OriginalName.ToLowerInvariant().Contains(term))
+                               .ToList(); // Материализуем результат в список (копию)
+
+            return Task.FromResult<IEnumerable<FileMetadata>>(results);
         }
     }
 }
