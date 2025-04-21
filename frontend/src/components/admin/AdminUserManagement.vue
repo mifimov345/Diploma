@@ -2,11 +2,9 @@
   <div class="admin-user-management">
     <h2>Управление пользователями</h2>
 
-    <!-- Форма создания -->
     <section v-if="canCreateUsers" class="create-user-section">
        <h3>{{ isSuperAdmin ? 'Создать пользователя или администратора' : 'Создать нового пользователя' }}</h3>
        <form @submit.prevent="createUser" class="create-user-form">
-         <!-- Имя и Пароль -->
          <div class="form-row">
              <div class="form-group">
                <label for="new-username">Имя пользователя:</label>
@@ -17,7 +15,6 @@
                <input id="new-password" type="password" v-model="newUser.password" required :disabled="isLoading" placeholder="Надежный пароль"/>
              </div>
          </div>
-         <!-- Роль (только для ВА) -->
           <div v-if="isSuperAdmin" class="form-row">
              <div class="form-group">
                <label for="new-role">Роль:</label>
@@ -27,13 +24,11 @@
                </select>
              </div>
              <div class="form-group">
-                 <!-- Пустой блок для выравнивания или добавить другое поле -->
              </div>
           </div>
-          <!-- Группы (только для ВА, обязательны для Admin) -->
            <div v-if="isSuperAdmin" class="form-row">
               <div class="form-group full-width">
-                 <label>Группы:</label> <!-- Убрал for, т.к. нет одного input -->
+                 <label>Группы:</label>
                   <div v-if="availableGroups.length > 0" class="checkbox-group">
                       <label v-for="group in availableGroups" :key="group" class="checkbox-label">
                         <input type="checkbox" :value="group" v-model="newUser.groups" :disabled="isLoading"/>
@@ -46,19 +41,16 @@
                   <small v-if="newUser.role === 'Admin'">*Администратору необходимо назначить хотя бы одну группу.</small>
               </div>
            </div>
-         <!-- Кнопка Создать -->
          <button type="submit" :disabled="isLoading || (isSuperAdmin && newUser.role === 'Admin' && newUser.groups.length === 0)" class="create-button">
            <span v-if="isLoading">Создание...</span>
            <span v-else>Создать</span>
          </button>
        </form>
-        <!-- Сообщения -->
         <div v-if="message" :class="['message', messageType]"> {{ message }} </div>
         <div v-if="credsError" class="message error"> {{ credsError }} </div> <!-- Ошибка смены УЗ -->
      </section>
      <div v-else> <p>У вас недостаточно прав для создания пользователей.</p> </div>
 
-    <!-- Список существующих пользователей -->
     <section class="user-list-section">
       <h3>Существующие пользователи</h3>
       <button @click="fetchUsers" :disabled="isUserListLoading" class="refresh-button">
@@ -85,13 +77,9 @@
                 <td>{{ user.Groups && user.Groups.length > 0 ? user.Groups.join(', ') : '-' }}</td>
                 <td v-if="isSuperAdmin">{{ user.CreatedByAdminId || '-' }}</td>
                 <td class="actions-cell">
-                   <!-- Редактирование групп (только ВА) -->
                    <button v-if="canEditGroups(user)" @click="openEditGroupsModal(user)" class="action-button edit-button" title="Изменить группы">⚙️</button>
-                   <!-- Смена логина -->
                    <button v-if="canEditCredentials(user)" @click="openChangeUsernameModal(user)" :disabled="isUpdatingCreds" class="action-button change-button" title="Сменить логин">👤</button>
-                   <!-- Смена пароля -->
                    <button v-if="canEditCredentials(user)" @click="openChangePasswordModal(user)" :disabled="isUpdatingCreds" class="action-button change-button" title="Сменить пароль">🔑</button>
-                   <!-- Удаление -->
                    <button v-if="canDeleteUser(user)" @click="deleteUser(user.Id, user.Username)" :disabled="isUpdatingCreds" class="action-button delete-button" title="Удалить пользователя">🗑️</button>
                 </td>
             </tr>
@@ -103,7 +91,6 @@
         <div v-if="isUserListLoading" class="loading-indicator">Загрузка списка...</div>
     </section>
 
-    <!-- Модальное окно для редактирования групп (из пред. ответа) -->
     <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditGroupsModal">
         <div class="modal-content">
             <h4>Изменить группы для пользователя: {{ editingUser.Username }}</h4>
@@ -167,21 +154,18 @@ export default {
   computed: {
     isSuperAdmin() { return this.currentUserRole === 'SuperAdmin'; },
     isAdmin() { return this.currentUserRole === 'Admin'; },
-    // Может ли текущий пользователь создавать других
     canCreateUsers() { return this.isSuperAdmin || this.isAdmin; },
   },
   methods: {
     // --- Загрузка данных ---
     async fetchAvailableGroups() {
-        if (!this.isSuperAdmin) return; // Только ВА нужны группы
-        // Очищаем сообщение основной формы перед загрузкой
+        if (!this.isSuperAdmin) return;
         this.message = ''; this.messageType = 'success';
         try {
-            const response = await axios.get('/api/auth/groups');
+            //const response = await axios.get('/api/auth/groups');
             this.availableGroups = response.data || [];
         } catch (err) {
-            console.error('Error fetching groups:', err);
-            // Отображаем ошибку в основной форме, т.к. она влияет на создание админа
+            //console.error('Error fetching groups:', err);
             this.message = 'Не удалось загрузить список групп для формы.';
             this.messageType = 'error';
         }
@@ -194,30 +178,27 @@ export default {
         const response = await axios.get('/api/auth/users');
         this.users = response.data || [];
       } catch (err) {
-        console.error('Error fetching users:', err);
+        //console.error('Error fetching users:', err);
         this.userListError = 'Не удалось загрузить список пользователей.';
       } finally {
         this.isUserListLoading = false;
       }
     },
 
-    // --- Создание пользователя ---
     async createUser() {
       if (!this.canCreateUsers || this.isLoading) return;
       this.isLoading = true;
-      this.message = ''; // Сброс предыдущего сообщения
-      this.credsError = ''; // Сброс ошибки УЗ
+      this.message = ''; 
+      this.credsError = '';
 
       const payload = {
         username: this.newUser.username,
         password: this.newUser.password,
       };
 
-      // Добавляем роль и группы, если создает ВА
       if (this.isSuperAdmin) {
          payload.role = this.newUser.role;
          payload.groups = this.newUser.groups;
-          // Валидация для Админа (на клиенте, дублирует серверную)
          if (payload.role === 'Admin' && (!payload.groups || payload.groups.length === 0)) {
              this.message = 'Ошибка: Администратору необходимо назначить хотя бы одну группу.';
              this.messageType = 'error';
@@ -225,7 +206,6 @@ export default {
              return;
          }
       }
-      // Если создает Админ, роль и группы бэкенд определит сам
 
       try {
         const response = await axios.post('/api/auth/users', payload);
@@ -236,9 +216,9 @@ export default {
         this.newUser.password = '';
         this.newUser.role = 'User';
         this.newUser.groups = [];
-        await this.fetchUsers(); // Обновляем список
+        await this.fetchUsers();
       } catch (err) {
-        console.error('Error creating user:', err);
+        //console.error('Error creating user:', err);
         this.messageType = 'error';
         this.message = `Ошибка создания: ${err.response?.data?.message || err.message}`;
       } finally {
@@ -246,9 +226,7 @@ export default {
       }
     },
 
-    // --- Редактирование групп ---
     canEditGroups(user) {
-        // ВА может редактировать группы Админов и Пользователей
         return this.isSuperAdmin && user.Role !== 'SuperAdmin';
     },
     openEditGroupsModal(user) {
@@ -257,7 +235,6 @@ export default {
          this.editingUserGroups = [...(user.Groups || [])]; // Копируем массив
          this.editGroupsError = '';
          this.showEditModal = true;
-         // Загружаем группы, если еще не загружены
          if (this.availableGroups.length === 0 && this.isSuperAdmin) {
              this.fetchAvailableGroups();
          }
@@ -271,7 +248,6 @@ export default {
     async updateUserGroups() {
          if (!this.editingUser || !this.isSuperAdmin || this.isUpdatingGroups) return;
 
-         // Проверка для админа (дублируем на клиенте для UX)
          if (this.editingUser.Role === 'Admin' && this.editingUserGroups.length === 0) {
              this.editGroupsError = "Администратор должен состоять хотя бы в одной группе!";
              return;
@@ -279,30 +255,25 @@ export default {
          this.isUpdatingGroups = true; this.editGroupsError = '';
 
          try {
-             // Отправляем массив имен групп
              await axios.put(`/api/auth/users/${this.editingUser.Id}/groups`, this.editingUserGroups);
              this.closeEditGroupsModal();
-             await this.fetchUsers(); // Обновляем список в таблице
-             // Показываем сообщение об успехе в основной форме
+             await this.fetchUsers();
              this.message = `Группы для пользователя ${this.editingUser.Username} обновлены.`;
              this.messageType = 'success';
          } catch (err) {
-              console.error('Error updating groups:', err);
+              //console.error('Error updating groups:', err);
               this.editGroupsError = `Ошибка обновления групп: ${err.response?.data?.message || err.message}`;
          } finally {
              this.isUpdatingGroups = false;
          }
      },
 
-    // --- Смена УЗ ---
     canEditCredentials(user) {
         if (!user || user.Id === this.currentUserId || user.Role === 'SuperAdmin') return false;
         if (this.isSuperAdmin) {
-            // ВА может менять Админов и Пользователей
             return user.Role === 'Admin' || user.Role === 'User';
         }
         if (this.isAdmin) {
-            // Админ меняет только Пользователей из своих групп
             return user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug));
         }
         return false;
@@ -321,9 +292,8 @@ export default {
     async openChangePasswordModal(user) {
         if (!this.canEditCredentials(user)) return;
         const input = prompt(`Введите НОВЫЙ пароль для пользователя "${user.Username}" (ID: ${user.Id}):`);
-        if (input === null) { this.credsError = ''; return; } // Отмена
+        if (input === null) { this.credsError = ''; return; }
         if (input === '') { this.credsError = "Пароль не может быть пустым."; return; }
-        // Добавить проверку сложности, если нужно
 
         this.newPassword = input;
         this.editingUserForCreds = user;
@@ -336,9 +306,9 @@ export default {
             await axios.put(`/api/auth/users/${this.editingUserForCreds.Id}/username`, { newUsername: this.newUsername });
             this.message = `Логин для ID ${this.editingUserForCreds.Id} изменен на "${this.newUsername}".`;
             this.messageType = 'success';
-            await this.fetchUsers(); // Обновляем список, т.к. имя изменилось
+            await this.fetchUsers(); 
         } catch (err) {
-            console.error("Error changing username:", err);
+            //console.error("Error changing username:", err);
             this.credsError = `Ошибка смены логина: ${err.response?.data?.message || err.message}`;
         } finally {
             this.isUpdatingCreds = false; this.editingUserForCreds = null; this.newUsername = '';
@@ -359,30 +329,27 @@ export default {
         }
     },
 
-    // --- Удаление пользователя ---
     canDeleteUser(user) {
          if (!user || user.Id === this.currentUserId || user.Role === 'SuperAdmin') return false;
-         if (this.isSuperAdmin) return true; // ВА удаляет всех, кроме себя
+         if (this.isSuperAdmin) return true;
          if (this.isAdmin) {
-             // Админ удаляет только User из своих групп
              return user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug));
          }
          return false;
      },
     async deleteUser(userId, username) {
-      if (!this.canDeleteUser({ Id: userId })) return; // Доп. проверка
+      if (!this.canDeleteUser({ Id: userId })) return;
       if (!confirm(`Вы уверены, что хотите удалить пользователя "${username}" (ID: ${userId})? Это действие необратимо.`)) {
         return;
       }
-      // Можно добавить индикатор удаления
-      this.message = ''; this.credsError = ''; // Сброс сообщений
+      this.message = ''; this.credsError = '';
       try {
         await axios.delete(`/api/auth/users/${userId}`);
         this.message = `Пользователь "${username}" (ID: ${userId}) удален.`;
         this.messageType = 'success';
-        await this.fetchUsers(); // Обновляем список
+        await this.fetchUsers();
       } catch (err) {
-        console.error('Error deleting user:', err);
+        //console.error('Error deleting user:', err);
         this.message = `Ошибка удаления: ${err.response?.data?.message || err.message}`;
         this.messageType = 'error';
       } finally {
@@ -390,19 +357,18 @@ export default {
       }
     },
 
-    // --- Инициализация ---
     loadCurrentUser() {
         this.currentUserId = parseInt(localStorage.getItem('userId') || '0');
         this.currentUserRole = localStorage.getItem('userRole');
         try { this.currentUserGroups = JSON.parse(localStorage.getItem('userGroups') || '[]'); }
         catch { this.currentUserGroups = []; }
-         console.log('Current User Loaded:', {id: this.currentUserId, role: this.currentUserRole, groups: this.currentUserGroups });
+         //console.log('Current User Loaded:', {id: this.currentUserId, role: this.currentUserRole, groups: this.currentUserGroups });
     }
   },
   created() {
-     this.loadCurrentUser(); // Сначала узнаем, кто мы
-     this.fetchUsers();      // Потом загружаем список пользователей (API сам отфильтрует)
-     if (this.isSuperAdmin) { // Если ВА, то еще и группы для формы загружаем
+     this.loadCurrentUser();
+     this.fetchUsers();
+     if (this.isSuperAdmin) { 
        this.fetchAvailableGroups();
      }
   }

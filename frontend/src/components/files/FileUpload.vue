@@ -2,7 +2,6 @@
   <div class="file-upload-container">
     <h2>Загрузка файлов</h2>
 
-    <!-- Зона Drag & Drop -->
     <div
       class="drop-zone"
       :class="{ 'drag-over': isDragging }"
@@ -30,11 +29,9 @@
        <p class="drop-zone-hint">Поддерживаются документы, изображения, видео. Макс. размер: 100MB.</p>
     </div>
 
-    <!-- Список загружаемых файлов и их статус -->
     <div v-if="uploadQueue.length > 0" class="upload-queue">
       <h4>Очередь загрузки:</h4>
       <ul>
-        <!-- Убрали неиспользуемый index -->
         <li v-for="item in uploadQueue" :key="item.id" :class="['upload-item', item.status]">
           <span class="upload-filename" :title="item.file.name">{{ item.file.name }} ({{ formatBytes(item.file.size) }})</span>
           <span class="upload-status">
@@ -44,11 +41,9 @@
             <template v-else-if="item.status === 'error'">❌ Ошибка: {{ item.errorMsg }}</template>
             <template v-else-if="item.status === 'cancelled'">Отменено</template>
           </span>
-           <!-- Индикатор прогресса -->
            <div v-if="item.status === 'uploading'" class="progress-bar-container">
                 <div class="progress-bar" :style="{ width: item.progress + '%' }"></div>
            </div>
-            <!-- Кнопка отмены для ожидающих или загружающихся -->
            <button
              v-if="item.status === 'pending' || item.status === 'uploading'"
              @click="cancelUpload(item.id)"
@@ -69,24 +64,22 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, nextTick } from 'vue'; // <-- Добавили nextTick
-import axios, { CancelToken } from 'axios'; // Импортируем CancelToken
-import { formatBytes } from '@/utils/formatters'; // Импортируем форматтер
+import { ref, shallowRef, nextTick } from 'vue';
+import axios, { CancelToken } from 'axios';
+import { formatBytes } from '@/utils/formatters';
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-const ALLOWED_EXTENSIONS = ['.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.txt','.csv']; // Документы
-const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'text/']; // Изображения, видео, текст
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = ['.pdf','.doc','.docx','.xls','.xlsx','.ppt','.pptx','.txt','.csv']; 
+const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'text/']; 
 
 const isDragging = ref(false);
-// Используем shallowRef для массива с объектами File, т.к. сам File менять не нужно
-const uploadQueue = shallowRef([]); // Массив объектов { id: number, file: File, status: string, progress: number, errorMsg: string, cancelTokenSource?: CancelTokenSource }
+const uploadQueue = shallowRef([]);
 const overallMessage = ref('');
 const overallMessageType = ref('success');
-const isUploading = ref(false); // Флаг, что идет активный процесс загрузки
-const fileInputRef = ref(null); // Ссылка на скрытый input
-let nextItemId = 0; // Счетчик для уникальных ID элементов очереди
+const isUploading = ref(false);
+const fileInputRef = ref(null);
+let nextItemId = 0;
 
-// --- Обработка выбора/дропа файлов ---
 const triggerFileInput = () => { fileInputRef.value?.click(); };
 const handleFileSelect = (event) => { handleFiles(event.target.files); if (event.target) event.target.value = null; };
 const handleDrop = (event) => { isDragging.value = false; handleFiles(event.dataTransfer.files); };
@@ -94,7 +87,7 @@ const handleDrop = (event) => { isDragging.value = false; handleFiles(event.data
 const handleFiles = (fileList) => {
     if (!fileList || fileList.length === 0) return;
     overallMessage.value = '';
-    let addedItems = []; // Собираем новые элементы
+    let addedItems = [];
 
     for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
@@ -103,7 +96,7 @@ const handleFiles = (fileList) => {
 
         // Проверка на дубликат в ТЕКУЩЕЙ очереди
         if (uploadQueue.value.some(item => item.file.name === file.name && item.file.size === file.size && item.status !== 'error' && item.status !== 'cancelled')) {
-            console.warn(`File skipped (duplicate): ${file.name}`);
+            //console.warn(`File skipped (duplicate): ${file.name}`);
             continue;
         }
 
@@ -130,35 +123,28 @@ const handleFiles = (fileList) => {
          });
     }
 
-    // Добавляем новые элементы в начало очереди для наглядности
     if (addedItems.length > 0) {
          uploadQueue.value = [...addedItems, ...uploadQueue.value];
-         // Запускаем обработку, если она не идет
          if (!isUploading.value) {
              processQueue();
          }
     } else if (uploadQueue.value.some(item => item.status === 'error')) {
-         // Если ничего не добавили, но есть ошибки (например, только файлы с ошибками перетащили)
          overallMessage.value = 'Некоторые файлы не соответствуют требованиям.';
          overallMessageType.value = 'error';
     }
 };
 
-// --- Обработка очереди загрузки ---
 const processQueue = async () => {
-    // Находим первый ожидающий файл
     const pendingItemIndex = uploadQueue.value.findIndex(item => item.status === 'pending');
 
-    // Если ожидающих нет или уже идет загрузка другого файла - выходим
     if (pendingItemIndex === -1 || isUploading.value) {
-        // Если не идет загрузка и нет ожидающих - обновляем финальное сообщение
         if (!isUploading.value && pendingItemIndex === -1) {
              updateOverallMessage();
         }
         return;
     }
 
-    isUploading.value = true; // Ставим флаг НАЧАЛА загрузки
+    isUploading.value = true;
     const currentItem = uploadQueue.value[pendingItemIndex];
 
     currentItem.status = 'uploading';
@@ -171,33 +157,31 @@ const processQueue = async () => {
 
     try {
         const apiUrl = '/api/file/upload';
-        console.log(`FileUpload: Sending POST to ${axios.defaults.baseURL}${apiUrl} for ${currentItem.file.name}`);
+        //console.log(`FileUpload: Sending POST to ${axios.defaults.baseURL}${apiUrl} for ${currentItem.file.name}`);
         const response = await axios.post(apiUrl, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
             cancelToken: currentItem.cancelTokenSource.token,
             onUploadProgress: (progressEvent) => {
-                 if (currentItem.status === 'uploading') { // Проверяем, не отменен ли
+                 if (currentItem.status === 'uploading') {
                       const percentCompleted = progressEvent.total
                         ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-                        : 50; // Fallback для неопределенного total
+                        : 50;
                       currentItem.progress = Math.min(percentCompleted, 100);
                  }
             }
         });
-         // Проверяем статус снова, т.к. мог быть отменен ПОСЛЕ запроса, но ДО ответа
          if (currentItem.status === 'uploading') {
              currentItem.status = 'success';
              currentItem.progress = 100;
-             console.log(`File ${currentItem.file.name} uploaded successfully:`, response.data);
+             //console.log(`File ${currentItem.file.name} uploaded successfully:`, response.data);
          }
 
     } catch (err) {
         if (axios.isCancel(err)) {
             currentItem.status = 'cancelled';
-            console.log(`Upload cancelled for ${currentItem.file.name}`);
+            //console.log(`Upload cancelled for ${currentItem.file.name}`);
         } else {
-            console.error(`Error uploading file ${currentItem.file.name}:`, err);
-            // Устанавливаем ошибку только если статус не 'cancelled'
+            //console.error(`Error uploading file ${currentItem.file.name}:`, err);
             if (currentItem.status !== 'cancelled') {
                 currentItem.status = 'error';
                  if (err.response) { currentItem.errorMsg = err.response.data?.message || err.response.data || `Ошибка ${err.response.status}`; }
@@ -206,10 +190,9 @@ const processQueue = async () => {
             }
         }
     } finally {
-         currentItem.cancelTokenSource = null; // Очищаем токен
-         isUploading.value = false; // Снимаем флаг ЗАВЕРШЕНИЯ этой загрузки
-         // Запускаем обработку следующего файла после обновления DOM
-         await nextTick(); // Используем импортированный nextTick
+         currentItem.cancelTokenSource = null;
+         isUploading.value = false;
+         await nextTick();
          processQueue();
     }
 };
@@ -219,28 +202,25 @@ const cancelUpload = (itemId) => {
     if (item) {
         if (item.status === 'uploading' && item.cancelTokenSource) {
              item.cancelTokenSource.cancel('Upload cancelled by user.');
-             item.status = 'cancelled'; // Явно меняем статус
+             item.status = 'cancelled';
         } else if (item.status === 'pending') {
-             item.status = 'cancelled'; // Просто меняем статус для ожидающих
+             item.status = 'cancelled';
         }
     }
 };
 
 
 const clearQueue = () => {
-    // Удаляем только успешно загруженные, отмененные и с ошибками
     uploadQueue.value = uploadQueue.value.filter(item => item.status === 'pending' || item.status === 'uploading');
     overallMessage.value = '';
-    // Если после очистки не осталось ожидающих/загружающихся, останавливаем флаг
     if (!uploadQueue.value.some(item => item.status === 'pending' || item.status === 'uploading')) {
         isUploading.value = false;
     }
 };
 
 const updateOverallMessage = () => {
-    // Сообщение формируется только когда очередь полностью обработана (нет pending и uploading)
     if (uploadQueue.value.some(item => item.status === 'pending' || item.status === 'uploading')) {
-        overallMessage.value = ''; // Не показываем финальное сообщение, пока идет процесс
+        overallMessage.value = '';
         return;
     }
 
@@ -259,19 +239,17 @@ const updateOverallMessage = () => {
         overallMessage.value = msg;
         overallMessageType.value = errorItems > 0 ? 'error' : 'success';
     } else if (successItems === 0 && errorItems === 0 && cancelledItems === 0 && uploadQueue.value.length > 0) {
-        // Этого случая быть не должно при текущей логике, но на всякий случай
         overallMessage.value = 'Нет файлов для загрузки или все были отменены до начала.';
          overallMessageType.value = 'success';
     }
      else {
-         overallMessage.value = ''; // Очищаем, если очередь пуста изначально
+         overallMessage.value = '';
     }
 };
 
 </script>
 
 <style scoped>
-/* Стили остаются такими же, как в предыдущем ответе */
 .file-upload-container { padding: 20px; max-width: 700px; margin: auto; }
 h2 { margin-top: 0; margin-bottom: 20px; text-align: center; }
 .drop-zone { border: 3px dashed #007bff; border-radius: 10px; padding: 40px 20px; text-align: center; cursor: pointer; background-color: #f4f8ff; transition: background-color 0.2s ease, border-color 0.2s ease; margin-bottom: 25px; }

@@ -37,16 +37,16 @@ namespace AuthService.Controllers
         {
             if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
             {
-                _logger.LogWarning("Login attempt with missing username or password.");
+                //_logger.LogWarning("Login attempt with missing username or password.");
                 return BadRequest("Username and password are required.");
             }
 
-            _logger.LogInformation("Login attempt for user: {Username}", model.Username);
+            //_logger.LogInformation("Login attempt for user: {Username}", model.Username);
             var user = _userService.Authenticate(model.Username, model.Password);
 
             if (user == null)
             {
-                _logger.LogWarning("Login failed for user: {Username} - Invalid credentials or user not found.", model.Username);
+                //_logger.LogWarning("Login failed for user: {Username} - Invalid credentials or user not found.", model.Username);
                 return Unauthorized("Invalid username or password."); // 401
             }
 
@@ -62,12 +62,12 @@ namespace AuthService.Controllers
                     Id = user.Id
                 };
 
-                _logger.LogInformation("Login successful for user: {Username}, Role: {Role}", responseData.Username, responseData.Role);
+                //_logger.LogInformation("Login successful for user: {Username}, Role: {Role}", responseData.Username, responseData.Role);
                 return Ok(responseData); // 200 OK
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, "CRITICAL: Failed to generate JWT token for user {Username} after successful authentication. Check JWT configuration.", user.Username);
+                //_logger.LogCritical(ex, "CRITICAL: Failed to generate JWT token for user {Username} after successful authentication. Check JWT configuration.", user.Username);
                 return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred during login processing.");
             }
         }
@@ -121,11 +121,11 @@ namespace AuthService.Controllers
                 var key = _configuration["Jwt:Key"];
                 var issuer = _configuration["Jwt:Issuer"];
                 var audience = _configuration["Jwt:Audience"];
-                _logger.LogInformation("--- AuthService JWT Config Loaded (LoginController) ---");
-                _logger.LogInformation("Jwt:Key = {KeyStatus}", string.IsNullOrEmpty(key) ? "MISSING" : (key.Length < 32 ? $"SHORT ({key.Length} chars)" : key.Substring(0, 5) + "..."));
-                _logger.LogInformation("Jwt:Issuer = {Issuer}", issuer);
-                _logger.LogInformation("Jwt:Audience = {Audience}", audience);
-                _logger.LogInformation("------------------------------------------------------");
+                //_logger.LogInformation("--- AuthService JWT Config Loaded (LoginController) ---");
+                //_logger.LogInformation("Jwt:Key = {KeyStatus}", string.IsNullOrEmpty(key) ? "MISSING" : (key.Length < 32 ? $"SHORT ({key.Length} chars)" : key.Substring(0, 5) + "..."));
+                //_logger.LogInformation("Jwt:Issuer = {Issuer}", issuer);
+                //_logger.LogInformation("Jwt:Audience = {Audience}", audience);
+                //_logger.LogInformation("------------------------------------------------------");
                 if (string.IsNullOrEmpty(key) || key.Length < 32)
                 {
                     _logger.LogCritical("CRITICAL: JWT Key is missing or too short in configuration! Auth will fail.");

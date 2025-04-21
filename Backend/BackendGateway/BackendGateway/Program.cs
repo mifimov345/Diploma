@@ -7,8 +7,6 @@ using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Добавление сервисов ---
-
 builder.Logging.ClearProviders();
 builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 builder.Logging.AddConsole(options => options.FormatterName = "simple");

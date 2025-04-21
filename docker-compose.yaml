@@ -9,12 +9,10 @@ services:
       - "5001:80"
     environment:
       - ASPNETCORE_URLS=http://+:80
-      - ASPNETCORE_ENVIRONMENT=Development # Или Production
+      - ASPNETCORE_ENVIRONMENT=Development
       - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set}
       - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
       - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
-      # Добавим URL фронтенда для CORS, если нужно в AuthService
-      # - FrontendUrl=${FRONTEND_URL?Error - FRONTEND_URL is not set}
     networks:
       - myapp-network
 
@@ -30,43 +28,37 @@ services:
       - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set}
       - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
       - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
-      - FrontendUrl=${FRONTEND_URL?Error - FRONTEND_URL is not set} # Для CORS
+      - FrontendUrl=${FRONTEND_URL?Error - FRONTEND_URL is not set}
     volumes:
-      - fileservice-uploads:/app/uploads # Хранение файлов
+      - fileservice-uploads:/app/uploads
     networks:
       - myapp-network
     depends_on:
       - authservice
 
-  # --- НОВЫЙ СЕРВИС ПОИСКА ---
   searchservice:
     build:
-      context: ./Backend/SearchService # Укажите правильный путь
+      context: ./Backend/SearchService
       dockerfile: Dockerfile
     ports:
-      - "5003:80" # Новый внешний порт для отладки (можно убрать потом)
+      - "5003:80"
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
-      # Путь к индексу Lucene внутри контейнера
       - LuceneIndexPath=/app/lucene_index
-      # Возможно, URL FileService для скачивания
-      # - FileServiceInternalUrl=http://fileservice/api/file/internal/download/
     volumes:
-      # Volume для хранения индекса Lucene
       - searchservice-index:/app/lucene_index
     networks:
       - myapp-network
-    depends_on: # Зависит от FileService для скачивания
+    depends_on:
       - fileservice
-  # --- КОНЕЦ СЕРВИСА ПОИСКА ---
 
   backendgateway:
     build:
       context: ./Backend/BackendGateway
       dockerfile: Dockerfile
     ports:
-      - "5000:80" # Основной порт шлюза
+      - "5000:80"
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
@@ -75,19 +67,16 @@ services:
     depends_on:
       - authservice
       - fileservice
-      - searchservice # Добавляем зависимость от нового сервиса
+      - searchservice
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "8080:80" # Порт Nginx
+      - "8080:80"
     environment:
-      # Передаем URL шлюза в Nginx для возможных прокси или в переменные JS
-      - API_BASE_URL=http://backendgateway # Имя сервиса шлюза
-      # Можно использовать VUE_APP_... для передачи в JS при сборке,
-      # но проще настроить Axios на относительный URL шлюза (localhost:5000)
+      - API_BASE_URL=http://backendgateway
     networks:
       - myapp-network
     depends_on:
@@ -95,7 +84,7 @@ services:
 
 volumes:
   fileservice-uploads:
-  searchservice-index: # Volume для индекса
+  searchservice-index:
 
 networks:
   myapp-network:

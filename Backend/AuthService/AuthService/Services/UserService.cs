@@ -80,26 +80,26 @@ namespace AuthService.Services
         }
         public User Authenticate(string username, string password)
         {
-            Console.WriteLine($"--- UserService Authenticate: Attempting login for username='{username}'");
+            //Console.WriteLine($"--- UserService Authenticate: Attempting login for username='{username}'");
             var user = _users.SingleOrDefault(x => x.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
 
             if (user == null)
             {
-                Console.WriteLine($"--- UserService Authenticate: User '{username}' not found.");
+                //Console.WriteLine($"--- UserService Authenticate: User '{username}' not found.");
                 return null;
             }
 
-            Console.WriteLine($"--- UserService Authenticate: User '{username}' found. ID={user.Id}, Role={user.Role}. Verifying password...");
+            //Console.WriteLine($"--- UserService Authenticate: User '{username}' found. ID={user.Id}, Role={user.Role}. Verifying password...");
 
             bool passwordValid = VerifyPasswordHash(password, user.PasswordHash);
 
             if (!passwordValid)
             {
-                Console.WriteLine($"--- UserService Authenticate: Password verification FAILED for user '{username}'.");
+                //Console.WriteLine($"--- UserService Authenticate: Password verification FAILED for user '{username}'.");
                 return null;
             }
 
-            Console.WriteLine($"--- UserService Authenticate: Password verification SUCCESSFUL for user '{username}'.");
+            //Console.WriteLine($"--- UserService Authenticate: Password verification SUCCESSFUL for user '{username}'.");
             return user;
         }
 
@@ -290,16 +290,13 @@ namespace AuthService.Services
             if (userToUpdate == null)
                 throw new KeyNotFoundException($"User with ID {userIdToUpdate} not found.");
 
-            // Проверка на уникальность нового имени пользователя (игнорируя самого пользователя)
             if (_users.Any(u => u.Id != userIdToUpdate && u.Username.Equals(newUsername, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException($"Username '{newUsername}' is already taken.");
 
-            // Проверка прав
             CheckUpdatePermissions(userToUpdate, currentUserId, currentUserRole, "update username");
 
-            // Обновляем имя
             userToUpdate.Username = newUsername;
-            Console.WriteLine($"--- UserService: Updated username for User ID {userIdToUpdate} to '{newUsername}' by User ID {currentUserId}");
+            //Console.WriteLine($"--- UserService: Updated username for User ID {userIdToUpdate} to '{newUsername}' by User ID {currentUserId}");
         }
 
         public void UpdatePassword(int userIdToUpdate, string newPassword, int currentUserId, string currentUserRole)
@@ -314,7 +311,7 @@ namespace AuthService.Services
             CheckUpdatePermissions(userToUpdate, currentUserId, currentUserRole, "update password");
 
             userToUpdate.PasswordHash = HashPassword(newPassword);
-            Console.WriteLine($"--- UserService: Updated password for User ID {userIdToUpdate} by User ID {currentUserId}");
+            //Console.WriteLine($"--- UserService: Updated password for User ID {userIdToUpdate} by User ID {currentUserId}");
         }
 
         private void CheckUpdatePermissions(User userToModify, int currentUserId, string currentUserRole, string action)

@@ -21,13 +21,12 @@ namespace AuthService.Filters
             if (user?.Identity?.IsAuthenticated ?? false)
             {
                 var claimsInfo = string.Join("; ", user.Claims.Select(c => $"{c.Type}={c.Value}"));
-                _logger.LogInformation("--- User Claims in Action Filter ({ActionName}) ---: {Claims}",
-                    context.ActionDescriptor.DisplayName,
-                    claimsInfo);
+                //_logger.LogInformation("--- User Claims in Action Filter ({ActionName}) ---: {Claims}",
+                //    context.ActionDescriptor.DisplayName,
+                //    claimsInfo);
 
-                // Дополнительно проверим роль
                 var roleClaim = user.FindFirstValue(ClaimTypes.Role);
-                _logger.LogInformation("--- Role Claim Value: {RoleClaim}", roleClaim ?? "NULL");
+                //_logger.LogInformation("--- Role Claim Value: {RoleClaim}", roleClaim ?? "NULL");
             }
             else
             {

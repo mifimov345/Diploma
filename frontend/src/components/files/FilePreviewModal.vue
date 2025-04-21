@@ -4,62 +4,36 @@
         <button @click="closeModal" class="close-button" title="Закрыть">×</button>
         <h3>Предпросмотр: {{ originalName }}</h3>
   
-        <!-- Индикаторы загрузки и ошибки -->
         <div v-if="isLoading" class="loading-indicator">Загрузка данных файла...</div>
         <div v-if="error" class="error-message">{{ error }}</div>
   
-        <!-- ОБЛАСТЬ ПРЕДПРОСМОТРА -->
-        <!-- Используем v-show для preview-area чтобы он не исчезал при рендеринге -->
         <div ref="previewAreaRef" class="preview-area" v-show="!isLoading && !error">
-          <!-- Лоадер рендеринга поверх контента -->
           <div v-if="isRendering" class="rendering-loader">
               <div class="loading-indicator small">{{ renderingStatus }}</div>
           </div>
   
-          <!-- Изображение -->
-          <img v-if="isPreviewableImage && blobUrl" :src="blobUrl" :alt="originalName" class="preview-image"/>
-  
-          <!-- Видео -->
-          <video v-else-if="isPreviewableVideo && blobUrl" :src="blobUrl" controls class="preview-video"></video>
-  
-          <!-- PDF -->
-          <iframe v-else-if="isPreviewablePdf && blobUrl" :src="blobUrl" frameborder="0" class="preview-pdf" title="PDF Preview"></iframe>
-  
-          <!-- DOCX (контейнер для рендеринга) -->
-          <div v-else-if="isPreviewableDocx" ref="docxContainerRef" class="docx-container">
-              <!-- Сюда docx-preview вставит результат -->
-          </div>
-  
-          <!-- PPTX (отображение извлеченного текста) -->
-           <div v-else-if="isPreviewablePptx && pptxTextContent" class="pptx-text-container" v-html="pptxTextContent"></div>
-  
-          <!-- CSV (отображение таблицы) -->
-           <div v-else-if="isPreviewableCsv && csvData.length > 0" class="csv-container">
-              <table>
-                  <thead>
-                      <tr>
-                          <th v-for="(header, index) in csvData[0]" :key="`header-${index}`">{{ header }}</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                       <!-- Пропускаем первую строку (заголовок) при выводе данных -->
-                      <tr v-for="(row, rowIndex) in csvData.slice(1)" :key="`row-${rowIndex}`">
-                          <td v-for="(cell, cellIndex) in row" :key="`cell-${rowIndex}-${cellIndex}`">{{ cell }}</td>
-                      </tr>
-                  </tbody>
-              </table>
-           </div>
-  
-          <!-- Другие типы или если рендеринг не удался -->
-          <div v-else-if="!isRendering && !blobUrl && !isPreviewableDocx && !isPreviewablePptx && !isPreviewableCsv" class="preview-not-available">
-            <p>Предпросмотр недоступен для данного типа файла ({{ contentType || 'тип не определен' }}).</p>
-            <button @click="downloadOriginal" class="download-button">Скачать файл</button>
-          </div>
-  
+          <template v-if="!isRendering">
+              <!-- Изображение -->
+              <img v-if="isPreviewableImage && blobUrl" :src="blobUrl" :alt="originalName" class="preview-image"/>
+              <!-- Видео -->
+              <video v-else-if="isPreviewableVideo && blobUrl" :src="blobUrl" controls class="preview-video"></video>
+              <!-- PDF -->
+              <iframe v-else-if="isPreviewablePdf && blobUrl" :src="blobUrl" frameborder="0" class="preview-pdf" title="PDF Preview"></iframe>
+              <!-- DOCX -->
+              <div v-else-if="isPreviewableDocx" ref="docxContainerRef" class="docx-container"></div>
+              <!-- PPTX (Текст) -->
+               <div v-else-if="isPreviewablePptx && pptxTextContent" class="pptx-text-container" v-html="pptxTextContent"></div>
+              <!-- CSV -->
+               <div v-else-if="isPreviewableCsv && csvData.length > 0" class="csv-container">
+                   <!-- ... таблица CSV ... -->
+               </div>
+              <!-- XLSX и другие неподдерживаемые -->
+              <div v-else class="preview-not-available">
+                <p>Предпросмотр недоступен для данного типа файла ({{ props.contentType || getExtension() || 'тип не определен' }}).</p>
+                <button @click="downloadOriginal" class="download-button">Скачать файл</button>
+              </div>
+          </template>
         </div>
-        <!-- КОНЕЦ ОБЛАСТИ ПРЕДПРОСМОТРА -->
-  
-         <!-- Если файл не загрузился -->
          <div v-if="!isLoading && !error && !blobUrl && !fileBlob && !pptxFileBlob && !csvText && pptxTextContent === ''" class="preview-not-available">
              <p>Не удалось загрузить данные для предпросмотра.</p>
              <button @click="downloadOriginal" class="download-button">Скачать файл</button>
@@ -70,14 +44,12 @@
   </template>
   
   <script setup>
-  // Используем <script setup> для Composition API
   import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
   import axios from 'axios';
   import { renderAsync } from 'docx-preview';
-  import JSZip from 'jszip'; // Импортируем JSZip
-  import convert from 'xml-js'; // Импортируем xml-js
+  import JSZip from 'jszip';
+  import convert from 'xml-js';
   
-  // --- Props and Emits ---
   const props = defineProps({
     fileId: { type: String, required: true },
     contentType: { type: String, default: '' },
@@ -85,7 +57,6 @@
   });
   const emit = defineEmits(['close', 'download-original']);
   
-  // --- Refs ---
   const isLoading = ref(false); // Загрузка blob/text
   const isRendering = ref(false); // Рендеринг docx/pptx/csv
   const renderingStatus = ref(''); // Текст для лоадера рендеринга
@@ -99,20 +70,17 @@
   
   const previewAreaRef = ref(null);
   const docxContainerRef = ref(null);
-  // pptxContainerRef больше не нужен, используем v-html
   
-  // --- Computed Properties ---
-  const getMimeType = () => props.contentType?.split(';')[0].trim().toLowerCase() || ''; // Получаем чистый MIME тип
+  const getMimeType = () => props.contentType?.split(';')[0].trim().toLowerCase() || '';
   const getExtension = () => props.originalName?.split('.').pop()?.toLowerCase() || '';
   
   const isPreviewableImage = computed(() => getMimeType().startsWith('image/'));
   const isPreviewableVideo = computed(() => getMimeType().startsWith('video/'));
   const isPreviewablePdf = computed(() => ['application/pdf', 'application/x-pdf'].includes(getMimeType()));
   const isPreviewableDocx = computed(() => getMimeType() === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || getExtension() === 'docx');
-  const isPreviewablePptx = computed(() => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.ms-powerpoint'].includes(getMimeType()) || ['pptx', 'ppt'].includes(getExtension()));
-  const isPreviewableCsv = computed(() => getMimeType() === 'text/csv' || (getMimeType() === 'text/plain' && getExtension() === 'csv')); // Проверяем и MIME, и расширение
+  const isPreviewablePptx = computed(() => ['application/vnd.openxmlformats-officedocument.presentationml.presentation','application/vnd.ms-powerpoint'].includes(getMimeType()) || ['pptx', 'ppt'].includes(getExtension()));
+  const isPreviewableCsv = computed(() => getMimeType() === 'text/csv' || (getMimeType() === 'text/plain' && getExtension() === 'csv'));
   
-  // --- Methods ---
   const closeModal = () => { emit('close'); };
   const downloadOriginal = () => { emit('download-original', props.fileId); closeModal(); };
   
@@ -125,29 +93,25 @@
     pptxTextContent.value = '';
   };
   
-  // --- Rendering Functions ---
   const renderDocx = async () => {
   if (!fileBlob.value || !docxContainerRef.value) return;
   isRendering.value = true; renderingStatus.value = 'Рендеринг DOCX...'; error.value = '';
-  console.log('Attempting to render DOCX...');
+  //console.log('Attempting to render DOCX...');
   try {
     await renderAsync(fileBlob.value, docxContainerRef.value, null, {
       className: "docx",
       breakPages: true,
       experimental: true,
-      // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
-      // Используем process.env.NODE_ENV для определения режима
       debug: process.env.NODE_ENV !== 'production',
-      // --------------------------
       useMathMLPolyfill: true,
       inWrapper: true,
       ignoreWidth: false,
       ignoreHeight: false,
       ignoreFonts: false
     });
-    console.log('DOCX rendered successfully.');
+    //console.log('DOCX rendered successfully.');
   } catch (renderError) {
-    console.error("Error rendering DOCX:", renderError);
+    //console.error("Error rendering DOCX:", renderError);
     error.value = `Ошибка отображения DOCX. Попробуйте скачать файл.`;
     if(docxContainerRef.value) { docxContainerRef.value.innerHTML = ''; }
   } finally {
@@ -155,19 +119,16 @@
   }
 };
   
-  // --- Новая функция для извлечения текста из PPTX ---
   const extractPptxText = async () => {
       if (!pptxFileBlob.value) return;
       isRendering.value = true; renderingStatus.value = 'Извлечение текста PPTX...'; error.value = '';
-      console.log('Attempting to extract PPTX text...');
-      let extractedHtml = ''; // Собираем текст как HTML
+      //console.log('Attempting to extract PPTX text...');
+      let extractedHtml = '';
       try {
           const zip = await JSZip.loadAsync(pptxFileBlob.value);
           const slidePromises = [];
   
-          // Ищем файлы слайдов (ppt/slides/slideX.xml)
           zip.folder("ppt/slides").forEach((relativePath, file) => {
-               // Проверяем, что это именно файл slideN.xml, а не _rels/slideN.xml.rels
                if (/^slide\d+\.xml$/i.test(relativePath)) {
                    console.log('Processing slide:', relativePath);
                    slidePromises.push(file.async("string"));
@@ -175,7 +136,7 @@
           });
   
           if (slidePromises.length === 0) {
-               console.warn("No slide*.xml files found in ppt/slides folder.");
+               //console.warn("No slide*.xml files found in ppt/slides folder.");
                error.value = "Не удалось найти слайды в файле PPTX.";
                isRendering.value = false; renderingStatus.value = '';
                return;
@@ -195,7 +156,6 @@
                    if (textNodes.length > 0) {
                       extractedHtml += '<ul>';
                       textNodes.forEach(node => {
-                          // Проверяем наличие текста (_text) или вложенного узла (иногда бывает в <a:r>)
                           const text = node && (node._text || (node['a:r'] && node['a:r']._text));
                           if (text) {
                               extractedHtml += `<li>${escapeHtml(text)}</li>`;
@@ -206,47 +166,40 @@
                        extractedHtml += '<p><i>(Нет текста на слайде)</i></p>';
                    }
                } catch (xmlError) {
-                   console.error(`Error parsing XML for slide ${slideCounter}:`, xmlError);
+                   //console.error(`Error parsing XML for slide ${slideCounter}:`, xmlError);
                    extractedHtml += `<p style="color: red;"><i>(Ошибка обработки слайда ${slideCounter})</i></p>`;
                }
-               extractedHtml += '<hr/>'; // Разделитель
+               extractedHtml += '<hr/>';
           });
   
            if (!extractedHtml) {
-               // Эта проверка может быть излишней, если нет слайдов, мы выйдем раньше
                error.value = "Не удалось извлечь текст из презентации.";
            } else {
               pptxTextContent.value = extractedHtml;
-              console.log('PPTX text extracted successfully.');
+              //console.log('PPTX text extracted successfully.');
            }
   
       } catch (zipError) {
-          console.error("Error processing PPTX file:", zipError);
+          //console.error("Error processing PPTX file:", zipError);
           error.value = "Ошибка обработки файла PPTX. Возможно, файл поврежден или имеет неверный формат.";
       } finally {
           isRendering.value = false; renderingStatus.value = '';
       }
   };
   
-  // Вспомогательная функция для поиска нод в объекте (рекурсивная)
   const findNodes = (obj, nodeName) => {
       let nodes = [];
       if (!obj || typeof obj !== 'object') return nodes;
   
-      // Проверяем сам объект
       if (obj._attributes && obj._attributes['name'] === nodeName) {
-          // Это для случая, если ищем по имени атрибута, а не тега (здесь не нужно)
       }
-      // Ищем сам тег как ключ
        if (obj[nodeName]) {
            const found = obj[nodeName];
            nodes = nodes.concat(Array.isArray(found) ? found : [found]);
        }
   
   
-      // Рекурсивно обходим свойства объекта
       for (const key in obj) {
-           // Исключаем системные поля xml-js
           if (key !== '_attributes' && key !== '_text' && key !== '_cdata' && key !== '_comment') {
                if (typeof obj[key] === 'object') {
                    nodes = nodes.concat(findNodes(obj[key], nodeName));
@@ -256,7 +209,6 @@
       return nodes;
   };
   
-  // Простая функция экранирования HTML
   const escapeHtml = (unsafe) => {
       if (typeof unsafe !== 'string') return '';
       return unsafe
@@ -271,13 +223,12 @@
   const parseAndDisplayCsv = () => {
       if (!csvText.value) return;
       isRendering.value = true; renderingStatus.value = 'Обработка CSV...'; error.value = '';
-      console.log('Parsing CSV data...');
+      //console.log('Parsing CSV data...');
       try {
           const lines = csvText.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
           const data = lines
               .map(line => line.trim())
               .filter(line => line.length > 0)
-               // Улучшенный сплиттер для CSV, учитывающий запятые в кавычках
                .map(line => {
                   const result = [];
                   let current = '';
@@ -291,7 +242,7 @@
                           current = '';
                       } else if (char === '"' && line[i+1] === '"') { // Двойная кавычка внутри кавычек
                           current += '"';
-                          i++; // Пропускаем вторую кавычку
+                          i++;
                       } else {
                           current += char;
                       }
@@ -302,15 +253,15 @@
   
   
           if (data.length === 0) {
-              console.warn("CSV parsing resulted in empty data array.");
+              //console.warn("CSV parsing resulted in empty data array.");
               error.value = "Не удалось распознать данные в CSV файле.";
               csvData.value = [];
           } else {
-              console.log(`CSV parsed into ${data.length} rows.`);
+              //console.log(`CSV parsed into ${data.length} rows.`);
               csvData.value = data;
           }
       } catch (parseError) {
-          console.error("Error parsing CSV:", parseError);
+          //console.error("Error parsing CSV:", parseError);
           error.value = "Ошибка обработки CSV файла.";
           csvData.value = [];
       } finally {
@@ -319,49 +270,35 @@
   };
   
   
-  // --- Data Fetching ---
   const fetchPreview = async () => {
     if (!props.fileId) return;
     isLoading.value = true; error.value = ''; revokeUrls(); isRendering.value = false;
-    console.log(`FilePreviewModal: Fetching preview for File ID: ${props.fileId}`);
-  
+    //console.log(`FilePreviewModal: Fetching preview for File ID: ${props.fileId}, Type: ${props.contentType}, Name: ${props.originalName}`);
+
     const responseType = isPreviewableCsv.value ? 'text' : 'blob';
-    console.log(`Requesting with responseType: ${responseType}`);
-  
+    //console.log(`Requesting with responseType: ${responseType}`);
+
     try {
-      const response = await axios.get(`/api/file/download/${props.fileId}`, {
+        const response = await axios.get(`/api/file/download/${props.fileId}`, {
         responseType: responseType, params: { inline: true }
-      });
-      console.log('>>> Preview Data Received:', response.data);
-  
-      if (responseType === 'text') {
-          if (typeof response.data === 'string' && response.data.length > 0) {
-              csvText.value = response.data;
-              // Парсинг запустится в finally после nextTick
-          } else {
-              console.warn("Received empty text response for CSV preview:", props.fileId);
-              error.value = "Получены пустые текстовые данные для CSV.";
-          }
-      } else { // blob
-          if (response.data instanceof Blob && response.data.size > 0) {
-              if (isPreviewableDocx.value) {
-                  fileBlob.value = response.data;
-              } else if (isPreviewablePptx.value) {
-                  pptxFileBlob.value = response.data;
-              } else { // PDF, Image, Video
-                  blobUrl.value = URL.createObjectURL(response.data);
-                  console.log('>>> Created Blob URL:', blobUrl.value);
-              }
-          } else {
-              console.warn("Received empty or invalid blob for preview:", props.fileId, response.data);
-              error.value = "Получены пустые или некорректные данные для предпросмотра.";
-          }
-      }
+        });
+        //console.log('>>> Preview Data Received:', response.data);
+
+        if (responseType === 'text') {
+            if (typeof response.data === 'string' && response.data.length > 0) { csvText.value = response.data; }
+            else { console.warn("Empty text response for CSV"); error.value = "CSV файл пуст."; }
+        } else {
+            if (response.data instanceof Blob && response.data.size > 0) {
+                if (isPreviewableDocx.value) { fileBlob.value = response.data; }
+                else if (isPreviewablePptx.value) { pptxFileBlob.value = response.data; }
+                else { blobUrl.value = URL.createObjectURL(response.data); console.log('>>> Created Blob URL:', blobUrl.value); }
+            } else { console.warn("Empty/invalid blob received"); error.value = "Получены пустые данные."; }
+        }
     } catch (err) {
-      console.error(`Error fetching file for preview (File ID: ${props.fileId}):`, err);
+      //console.error(`Error fetching file for preview (File ID: ${props.fileId}):`, err);
       if (err.response) {
-           console.error("Preview Error Response Status:", err.response.status);
-           console.error("Preview Error Response Data:", err.response.data);
+           //console.error("Preview Error Response Status:", err.response.status);
+           //console.error("Preview Error Response Data:", err.response.data);
            if (err.response.status === 404) error.value = "Файл не найден.";
            else if (err.response.status === 403) error.value = "Доступ к файлу запрещен.";
            else error.value = `Ошибка загрузки предпросмотра (статус ${err.response.status}).`;
@@ -381,7 +318,6 @@
     }
   };
   
-  // --- Lifecycle Hooks ---
   onMounted(fetchPreview);
   onBeforeUnmount(revokeUrls);
   watch(() => props.fileId, (newFileId, oldFileId) => { if (newFileId !== oldFileId) { fetchPreview(); } });
@@ -394,12 +330,7 @@
   .docx-wrapper .docx p { margin-bottom: 0.5em; line-height: 1.4; }
   .docx-wrapper .docx table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
   .docx-wrapper .docx td, .docx-wrapper .docx th { border: 1px solid #ccc; padding: 5px 8px; text-align: left; }
-  /* Добавьте больше стилей для DOCX по необходимости */
   
-  /* Стили для pptx2html (контейнер для текста) */
-  /* Мы не используем pptx2html для рендеринга, а только извлекаем текст,
-     поэтому стили .pptx-wrapper и .slide не нужны. */
-  /* Стили для извлеченного текста PPTX заданы в scoped стилях ниже. */
   </style>
   
   <style scoped> /* Стили компонента */

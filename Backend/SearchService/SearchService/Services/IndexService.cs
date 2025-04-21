@@ -1,10 +1,9 @@
-﻿// SearchService/Services/IndexService.cs
-using Lucene.Net.Analysis.Standard;
+﻿using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
-using Directory = Lucene.Net.Store.Directory; // Уточняем, т.к. есть System.IO.Directory
+using Directory = Lucene.Net.Store.Directory;
 
 public interface IIndexService
 {
@@ -22,18 +21,18 @@ public class IndexService : IIndexService, IDisposable
     public IndexService(IConfiguration configuration, ILogger<IndexService> logger)
     {
         _logger = logger;
-        string indexPath = configuration["LuceneIndexPath"] ?? "lucene_index"; // Путь из env
+        string indexPath = configuration["LuceneIndexPath"] ?? "lucene_index";
         if (!System.IO.Directory.Exists(indexPath))
         {
             System.IO.Directory.CreateDirectory(indexPath);
         }
-        _logger.LogInformation("Initializing Lucene Index at: {IndexPath}", indexPath);
+        //_logger.LogInformation("Initializing Lucene Index at: {IndexPath}", indexPath);
 
         _indexDirectory = FSDirectory.Open(indexPath);
         var analyzer = new StandardAnalyzer(AppLuceneVersion);
         var indexConfig = new IndexWriterConfig(AppLuceneVersion, analyzer)
         {
-            OpenMode = OpenMode.CREATE_OR_APPEND // Создать или добавить
+            OpenMode = OpenMode.CREATE_OR_APPEND
         };
         _writer = new IndexWriter(_indexDirectory, indexConfig);
     }
@@ -42,8 +41,7 @@ public class IndexService : IIndexService, IDisposable
     {
         if (string.IsNullOrWhiteSpace(textContent))
         {
-            _logger.LogWarning("Skipping indexing for File ID {FileId} due to empty text content.", fileId);
-            // Возможно, стоит удалить старый индекс, если файл обновился и стал пустым?
+            //_logger.LogWarning("Skipping indexing for File ID {FileId} due to empty text content.", fileId);
             return Task.CompletedTask;
         }
 
@@ -51,32 +49,27 @@ public class IndexService : IIndexService, IDisposable
         {
             var doc = new Document
             {
-                // Сохраняем ID файла (не анализируем, но индексируем для поиска/удаления)
                 new StringField("fileId", fileId.ToString(), Field.Store.YES),
-                // Сохраняем ID пользователя (можно использовать для фильтрации)
-                new Int32Field("userId", userId, Field.Store.YES), // Используем Int32Field
-                // Сохраняем и анализируем текст файла
-                new TextField("content", textContent, Field.Store.NO) // NO - т.к. текст может быть большим, не храним его в индексе
+                new Int32Field("userId", userId, Field.Store.YES),
+                new TextField("content", textContent, Field.Store.NO)
             };
 
-            _logger.LogDebug("Indexing document for File ID: {FileId}, User ID: {UserId}", fileId, userId);
-            // Используем UpdateDocument для замены, если документ уже есть
+            //_logger.LogDebug("Indexing document for File ID: {FileId}, User ID: {UserId}", fileId, userId);
             _writer.UpdateDocument(new Term("fileId", fileId.ToString()), doc);
-            _writer.Commit(); // Фиксируем изменения (можно делать реже для производительности)
+            _writer.Commit();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error indexing file ID {FileId}", fileId);
-            // TODO: Обработка ошибок - откат? повтор?
         }
-        return Task.CompletedTask; // Асинхронность здесь условна
+        return Task.CompletedTask;
     }
 
     public Task DeleteFileAsync(Guid fileId)
     {
         try
         {
-            _logger.LogInformation("Deleting document from index for File ID: {FileId}", fileId);
+            //_logger.LogInformation("Deleting document from index for File ID: {FileId}", fileId);
             _writer.DeleteDocuments(new Term("fileId", fileId.ToString()));
             _writer.Commit();
         }
@@ -90,7 +83,7 @@ public class IndexService : IIndexService, IDisposable
 
     public void Dispose()
     {
-        _logger.LogInformation("Disposing Lucene IndexWriter.");
+        //_logger.LogInformation("Disposing Lucene IndexWriter.");
         _writer?.Dispose();
         _indexDirectory?.Dispose();
     }

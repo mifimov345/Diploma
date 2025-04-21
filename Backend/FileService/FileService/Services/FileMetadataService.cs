@@ -17,12 +17,20 @@ namespace FileService.Services
         Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId);
         Task<string> DeleteMetadataAndFileAsync(Guid id);
         Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups); // Поиск
+        Task<bool> UpdateFileGroupAsync(Guid fileId, string newGroupName, int currentUserId, string currentUserRole, List<string> currentUserGroups);
+
     }
 
     public class FileMetadataService : IFileMetadataService
     {
-        // Потокобезопасный словарь для хранения в памяти
         private readonly ConcurrentDictionary<Guid, FileMetadata> _metadataStore = new();
+
+        private readonly ILogger<FileMetadataService> _logger;
+
+        public FileMetadataService(ILogger<FileMetadataService> logger)
+        {
+            _logger = logger;
+        }
 
         public Task AddMetadataAsync(FileMetadata metadata)
         {
@@ -38,7 +46,6 @@ namespace FileService.Services
 
         public Task<IEnumerable<FileMetadata>> GetMetadataByUserAsync(int userId)
         {
-            // Используем .ToList() здесь, чтобы создать копию и избежать проблем с многопоточностью при итерации
             var userFiles = _metadataStore.Values.Where(m => m.UserId == userId).ToList();
             return Task.FromResult<IEnumerable<FileMetadata>>(userFiles);
         }
@@ -46,6 +53,57 @@ namespace FileService.Services
         public Task<IEnumerable<FileMetadata>> GetAllMetadataAsync()
         {
             return Task.FromResult<IEnumerable<FileMetadata>>(_metadataStore.Values.ToList());
+        }
+
+        public async Task<bool> UpdateFileGroupAsync(Guid fileId, string newGroupName, int currentUserId, string currentUserRole, List<string> currentUserGroups)
+        {
+            _logger.LogInformation("Attempting to update group for File ID {FileId} to '{NewGroup}' by User ID {UserId} (Role: {UserRole})",
+                 fileId, newGroupName, currentUserId, currentUserRole);
+
+            FileMetadata? metadata = await GetMetadataByIdAsync(fileId);
+
+            if (metadata == null)
+            {
+                _logger.LogWarning("UpdateFileGroup: File metadata not found for ID {FileId}", fileId);
+                return false;
+            }
+
+            bool canUpdate = false;
+            bool checkUserGroups = false;
+
+            if (currentUserRole == AppRoles.SuperAdmin)
+            {
+                canUpdate = true;
+            }
+            else if (metadata.UserId == currentUserId)
+            {
+                canUpdate = true;
+                checkUserGroups = true;
+            }
+
+            if (!canUpdate)
+            {
+                //_logger.LogWarning("UpdateFileGroup: Access DENIED for User ID {UserId} to change group for File ID {FileId}", currentUserId, fileId);
+                return false;
+            }
+
+            if (checkUserGroups && !currentUserGroups.Contains(newGroupName))
+            {
+                //_logger.LogWarning("UpdateFileGroup: User ID {UserId} attempted to assign group '{NewGroup}' which they do not belong to. File ID: {FileId}", currentUserId, newGroupName, fileId);
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(newGroupName))
+            {
+                //_logger.LogWarning("UpdateFileGroup: Attempted to assign empty or whitespace group name for File ID {FileId}", fileId);
+                return false;
+            }
+            string oldGroup = metadata.UserGroup ?? "N/A";
+            metadata.UserGroup = newGroupName;
+
+            //_logger.LogInformation("Successfully updated group for File ID {FileId} from '{OldGroup}' to '{NewGroup}' by User ID {UserId}",
+                //fileId, oldGroup, newGroupName, currentUserId);
+
+            return true;
         }
 
         public Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId)
@@ -56,9 +114,9 @@ namespace FileService.Services
             }
 
             var groupFiles = _metadataStore.Values
-                .Where(m => (m.UserGroup != null && groupNames.Contains(m.UserGroup)) || m.UserId == requestingAdminId) // Файлы из групп ИЛИ собственные файлы админа
-                .Distinct() // Убираем дубликаты, если админ сам в этой группе
-                .ToList(); // Создаем копию
+                .Where(m => (m.UserGroup != null && groupNames.Contains(m.UserGroup)) || m.UserId == requestingAdminId)
+                .Distinct()
+                .ToList();
 
             return Task.FromResult<IEnumerable<FileMetadata>>(groupFiles);
         }
@@ -72,15 +130,13 @@ namespace FileService.Services
             return Task.FromResult<string>(null);
         }
 
-        // Поиск файлов по имени
         public Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
             {
-                return Task.FromResult(Enumerable.Empty<FileMetadata>()); // Пустой запрос - пустой результат
+                return Task.FromResult(Enumerable.Empty<FileMetadata>());
             }
 
-            // Приводим к нижнему регистру для поиска без учета регистра
             var term = searchTerm.Trim().ToLowerInvariant();
 
             IEnumerable<FileMetadata> query = _metadataStore.Values;

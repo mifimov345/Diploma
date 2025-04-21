@@ -59,22 +59,22 @@
               username: this.username,
               password: this.password,
             });
-            console.log('>>> LOGIN RESPONSE RAW DATA:', response.data);
+            //console.log('>>> LOGIN RESPONSE RAW DATA:', response.data);
 
             const { Token, Role, Groups, Username, Id } = response.data;
-            console.log(">>> Extracted Id from response:", Id); // Проверяем извлеченное значение
+            //console.log(">>> Extracted Id from response:", Id);
 
             localStorage.setItem("jwtToken", Token);
             localStorage.setItem("userRole", Role);
             localStorage.setItem("username", Username);
             localStorage.setItem("userGroups", JSON.stringify(Groups || []));
             localStorage.setItem("userId", Id);
-            console.log("Saving userId to localStorage:", Id); // <-- Оставьте этот лог для проверки
+            //console.log("Saving userId to localStorage:", Id);
 
-            console.log(">>> Saved userId:", Id); // Лог перед чтением
-            console.log(">>> Read userId from localStorage immediately:", localStorage.getItem('userId'));
-            console.log("LOGIN: Attempting to set token:", Token);
-            console.log("LOGIN: Token READ from localStorage after set:", localStorage.getItem('jwtToken'));
+            //console.log(">>> Saved userId:", Id);
+            //console.log(">>> Read userId from localStorage immediately:", localStorage.getItem('userId'));
+            //console.log("LOGIN: Attempting to set token:", Token);
+            //console.log("LOGIN: Token READ from localStorage after set:", localStorage.getItem('jwtToken'));
 
             await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -88,9 +88,9 @@
             }
   
         } catch (error) {
-          console.error('Login failed:', error);
+          //console.error('Login failed:', error);
           if (error.response) {
-            console.error(">>> LOGIN ERROR RESPONSE:", error.response);
+            //console.error(">>> LOGIN ERROR RESPONSE:", error.response);
               if (error.response.status === 401) {
                    if (error.response.data && typeof error.response.data === 'string') {
                        this.errorMessage = error.response.data;
@@ -102,12 +102,11 @@
               }
               else {
                   this.errorMessage = `Ошибка входа (статус ${error.response.status}). Попробуйте позже.`;
-                  console.error(">>> LOGIN NETWORK/REQUEST ERROR:", error);
+                  //console.error(">>> LOGIN NETWORK/REQUEST ERROR:", error);
               }
           } else if (error.request) {
               this.errorMessage = 'Не удается подключиться к серверу. Проверьте сеть или обратитесь к администратору.';
           } else {
-            // Ошибка при настройке запроса
             this.errorMessage = 'Произошла ошибка при попытке входа.';
           }
         } finally {

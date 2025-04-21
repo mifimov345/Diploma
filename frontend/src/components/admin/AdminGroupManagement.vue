@@ -91,21 +91,21 @@ export default {
       this.listError = '';
       try {
         const response = await axios.get('/api/auth/groups');
-        console.log('>>> AdminGroupManagement fetchGroups RAW RESPONSE DATA:', response.data);
+        //console.log('>>> AdminGroupManagement fetchGroups RAW RESPONSE DATA:', response.data);
 
         if (Array.isArray(response.data) && response.data.every(item => typeof item === 'string')) {
              this.groups = response.data;
-             console.log('>>> AdminGroupManagement groups assigned (count):', this.groups.length);
+             //console.log('>>> AdminGroupManagement groups assigned (count):', this.groups.length);
              if (this.groups.length === 0) {
                  this.listError = '';
              }
         } else {
-             console.error('Received group data is not an array of strings:', response.data);
+             //console.error('Received group data is not an array of strings:', response.data);
              this.listError = 'Получены некорректные данные списка групп от сервера.';
              this.groups = [];
         }
       } catch (err) {
-        console.error("Error fetching groups:", err);
+        //console.error("Error fetching groups:", err);
         this.listError = err.response?.data?.message || 'Не удалось загрузить список групп. Проверьте соединение или права доступа.';
         this.groups = [];
       } finally {
@@ -126,7 +126,7 @@ export default {
         this.newGroupName = '';
         await this.fetchGroups();
       } catch (err) {
-        console.error("Error creating group:", err);
+        //console.error("Error creating group:", err);
         this.message = err.response?.data?.message || 'Ошибка при создании группы.';
         this.messageType = 'error';
       } finally {
@@ -149,7 +149,7 @@ export default {
         await axios.delete(`/api/auth/groups/${encodeURIComponent(groupName)}`);
         this.groups = this.groups.filter(g => g !== groupName);
       } catch (err) {
-        console.error(`Error deleting group ${groupName}:`, err);
+        //console.error(`Error deleting group ${groupName}:`, err);
         this.listError = `Ошибка при удалении группы "${groupName}": ${err.response?.data?.message || err.message}`;
       } finally {
         this.isDeleting = null;
