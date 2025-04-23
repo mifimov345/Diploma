@@ -162,7 +162,7 @@ export default {
         if (!this.isSuperAdmin) return;
         this.message = ''; this.messageType = 'success';
         try {
-            //const response = await axios.get('/api/auth/groups');
+            const response = await axios.get('/api/auth/groups');
             this.availableGroups = response.data || [];
         } catch (err) {
             //console.error('Error fetching groups:', err);

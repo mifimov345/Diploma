@@ -3,24 +3,24 @@
   "WorkspaceRootPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\controllers\\indexcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\controllers\\indexcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\controllers\\searchcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\controllers\\searchcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\services\\indexservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\services\\indexservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\services\\textextractorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\services\\textextractorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\services\\searcherservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\services\\searcherservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\services\\textextractorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\services\\textextractorservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\services\\indexservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\services\\indexservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\controllers\\searchcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\controllers\\searchcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\controllers\\indexcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|solutionrelative:searchservice\\controllers\\indexcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{26AE7708-8530-4BAD-B74A-D2184A2FCA8A}|SearchService\\SearchService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\searchservice\\searchservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -50,7 +50,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 10,
           "Children": [
             {
               "$type": "Bookmark",
@@ -101,33 +101,33 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 4,
               "Title": "IndexController.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Controllers\\IndexController.cs",
               "RelativeDocumentMoniker": "SearchService\\Controllers\\IndexController.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Controllers\\IndexController.cs",
               "RelativeToolTip": "SearchService\\Controllers\\IndexController.cs",
-              "ViewState": "AQIAAFcAAAAAAAAAAAAowG0AAAAAAAAA",
+              "ViewState": "AQIAAEIAAAAAAAAAAAAowBwAAAAKAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-20T19:54:11.237Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 3,
               "Title": "SearchController.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Controllers\\SearchController.cs",
               "RelativeDocumentMoniker": "SearchService\\Controllers\\SearchController.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Controllers\\SearchController.cs",
               "RelativeToolTip": "SearchService\\Controllers\\SearchController.cs",
-              "ViewState": "AQIAACIAAAAAAAAAAAAgwEUAAAABAAAA",
+              "ViewState": "AQIAAAwAAAAAAAAAAAAAAEUAAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-20T19:53:25.074Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "SearcherService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Services\\SearcherService.cs",
               "RelativeDocumentMoniker": "SearchService\\Services\\SearcherService.cs",
@@ -153,13 +153,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
               "Title": "TextExtractorService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Services\\TextExtractorService.cs",
               "RelativeDocumentMoniker": "SearchService\\Services\\TextExtractorService.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\SearchService\\SearchService\\Services\\TextExtractorService.cs",
               "RelativeToolTip": "SearchService\\Services\\TextExtractorService.cs",
-              "ViewState": "AQIAAAoBAAAAAAAAAAAswCUBAAASAAAA",
+              "ViewState": "AQIAAEIAAAAAAAAAAAAmwAoAAAASAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-04-20T19:50:47.566Z",
               "EditorCaption": ""
@@ -174,8 +174,7 @@
               "RelativeToolTip": "SearchService\\Program.cs",
               "ViewState": "AQIAAAwAAAAAAAAAAAAAACsAAAA/AAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-20T19:44:12.893Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-20T19:44:12.893Z"
             },
             {
               "$type": "Document",

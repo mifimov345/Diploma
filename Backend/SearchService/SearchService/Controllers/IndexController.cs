@@ -26,7 +26,7 @@ public class IndexController : ControllerBase
     public async Task<IActionResult> IndexFile([FromBody] IndexRequestModel model)
     {
         //_logger.LogInformation("Received index request for File ID: {FileId}, User ID: {UserId}, Name: {FileName}, Type: {ContentType}",
-         model.FileId, model.UserId, model.OriginalName ?? "N/A", model.ContentType ?? "N/A");
+        // model.FileId, model.UserId, model.OriginalName ?? "N/A", model.ContentType ?? "N/A");
         if (model.FileId == Guid.Empty) return BadRequest("FileId is required.");
         if (string.IsNullOrEmpty(model.OriginalName)) _logger.LogWarning("OriginalName is missing in index request for File ID {FileId}", model.FileId);
 

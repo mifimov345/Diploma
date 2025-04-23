@@ -191,7 +191,7 @@
       let nodes = [];
       if (!obj || typeof obj !== 'object') return nodes;
   
-      if (obj._attributes && obj._attributes['name'] === nodeName) {
+      if (obj._attributes && obj._attributes['name'] === nodeName) { // finally
       }
        if (obj[nodeName]) {
            const found = obj[nodeName];
