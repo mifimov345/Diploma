@@ -68,7 +68,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   // Добавляем подробные логи
-  console.log(`>>> ROUTER GUARD: Navigating from '${from.fullPath}' to '${to.fullPath}'`);
+  //console.log(`>>> ROUTER GUARD: Navigating from '${from.fullPath}' to '${to.fullPath}'`);
 
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const requiresGuest = to.matched.some(record => record.meta.requiresGuest);
@@ -77,44 +77,44 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('jwtToken');
   const userRole = localStorage.getItem('userRole');
 
-  console.log(`>>> ROUTER GUARD: Evaluating route: requiresAuth=${requiresAuth}, requiresGuest=${requiresGuest}`);
-  console.log(`>>> ROUTER GUARD: Current state: isAuthenticated=${isAuthenticated}, userRole='${userRole}'`);
-  console.log(`>>> ROUTER GUARD: Route allowedRoles=${allowedRoles ? allowedRoles.join(',') : 'ANY'}`);
+  //console.log(`>>> ROUTER GUARD: Evaluating route: requiresAuth=${requiresAuth}, requiresGuest=${requiresGuest}`);
+  //console.log(`>>> ROUTER GUARD: Current state: isAuthenticated=${isAuthenticated}, userRole='${userRole}'`);
+  //console.log(`>>> ROUTER GUARD: Route allowedRoles=${allowedRoles ? allowedRoles.join(',') : 'ANY'}`);
 
   if (requiresAuth) {
-    console.log('>>> ROUTER GUARD: Path requires authentication.');
+    //console.log('>>> ROUTER GUARD: Path requires authentication.');
     if (!isAuthenticated) {
-      console.warn(`>>> ROUTER GUARD: Decision -> NOT Authenticated. Redirecting to Login.`);
+      //console.warn(`>>> ROUTER GUARD: Decision -> NOT Authenticated. Redirecting to Login.`);
       next({ name: 'Login', query: { redirect: to.fullPath } });
     } else {
-      console.log(`>>> ROUTER GUARD: User is Authenticated. Checking role...`);
+      //console.log(`>>> ROUTER GUARD: User is Authenticated. Checking role...`);
       if (allowedRoles && !allowedRoles.includes(userRole)) {
-        console.warn(`>>> ROUTER GUARD: Decision -> Access DENIED (Role '${userRole}' not in [${allowedRoles.join(', ')}]). Redirecting.`);
+        //console.warn(`>>> ROUTER GUARD: Decision -> Access DENIED (Role '${userRole}' not in [${allowedRoles.join(', ')}]). Redirecting.`);
         if (userRole === ROLES.SUPER_ADMIN || userRole === ROLES.ADMIN) {
           next({ name: 'AdminFiles' });
         } else {
           next({ name: 'MyFiles' });
         }
       } else {
-        console.log('>>> ROUTER GUARD: Decision -> Access GRANTED. Calling next().');
+        //console.log('>>> ROUTER GUARD: Decision -> Access GRANTED. Calling next().');
         next();
       }
     }
   } else if (requiresGuest) {
-    console.log('>>> ROUTER GUARD: Path requires guest.');
+    //console.log('>>> ROUTER GUARD: Path requires guest.');
     if (isAuthenticated) {
-      console.warn(`>>> ROUTER GUARD: Decision -> Authenticated user on guest page. Redirecting.`);
+      //console.warn(`>>> ROUTER GUARD: Decision -> Authenticated user on guest page. Redirecting.`);
       if (userRole === ROLES.SUPER_ADMIN || userRole === ROLES.ADMIN) {
         next({ name: 'AdminFiles' });
       } else {
         next({ name: 'MyFiles' });
       }
     } else {
-      console.log('>>> ROUTER GUARD: Decision -> Access GRANTED to guest page. Calling next().');
+      //console.log('>>> ROUTER GUARD: Decision -> Access GRANTED to guest page. Calling next().');
       next();
     }
   } else {
-     console.log('>>> ROUTER GUARD: Path is public. Calling next().');
+     //console.log('>>> ROUTER GUARD: Path is public. Calling next().');
     next();
   }
 });
