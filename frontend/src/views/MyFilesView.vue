@@ -25,28 +25,47 @@
     <div v-if="error" class="error-message" role="alert"> {{ error }} </div>
 
     <div v-if="!isLoading || filteredFiles.length > 0" class="file-list-container" aria-live="polite">
-        <ul v-if="filteredFiles.length > 0" class="file-list">
-          <li v-for="file in filteredFiles" :key="file.Id" class="file-item">
-             <div class="file-icon" :aria-label="`Тип файла: ${file.ContentType || 'Неизвестный'}`">📄</div> <!-- Можно улучшить иконку -->
-             <div class="file-details">
-               <span class="file-name" :title="file.OriginalName">{{ file.OriginalName }}</span>
-               <span class="file-meta">
-                Группа: <strong :title="`Текущая группа: ${file.UserGroup || 'Не назначена'}`">{{ file.UserGroup || 'N/A' }}</strong> |
-                 Размер: {{ formatBytes(file.SizeBytes) }} |
-                 Загружен: {{ formatDate(file.UploadedAt) }} |
-                 Тип: {{ file.ContentType || 'N/A' }}
-               </span>
-             </div>
-             <div class="file-actions">
-                <button @click="openPreviewModal(file)" :disabled="isActionInProgress(file.Id)" class="action-button preview-button" title="Предпросмотр" aria-label="Предпросмотр файла">👁️</button>
-                <button @click="openChangeGroupModal(file)" :disabled="isActionInProgress(file.Id)" class="action-button edit-group-button" title="Сменить группу файла" aria-label="Сменить группу файла">✏️</button>
-                <button @click="downloadFile(file.Id, file.OriginalName)" :disabled="isActionInProgress(file.Id)" class="action-button download-button" title="Скачать файл" aria-label="Скачать файл"> <span v-if="isDownloading === file.Id">...</span><span v-else>📥</span> </button>
-             </div>
-          </li>
-        </ul>
-         <div v-else-if="!isLoading && !isLoadingSearch && !error" class="no-files-message">
+        <ul v-if="filteredFiles.length > 0" class="file-list no-bullets"> <!-- Добавлен класс no-bullets -->
+            <FileListItem
+                v-for="file in filteredFiles"
+                :key="file.Id"
+                :file="file"
+                :is-action-in-progress="isActionInProgress(file.Id)"
+                :action-type="getActionType(file.Id)"
+                :show-delete-button="true"  
+                @download-file="downloadFileFromList"
+                @delete-file="deleteFileFromList"
+                @click="openPreviewModal(file)" 
+                class="clickable-list-item" 
+            >
+              <template #actions>                  
+                  <button
+                                v-if="canChangeGroup(file)"  
+                                @click.stop="openChangeGroupModal(file)"
+                                :disabled="isActionInProgress(file.Id)"
+                                class="action-button edit-group-button"
+                                title="Сменить группу файла"
+                                aria-label="Сменить группу файла">
+                                ✏️
+                           </button>
+                           <button
+                                @click.stop="openPreviewModal(file)"
+                                :disabled="isActionInProgress(file.Id)"
+                                class="action-button preview-button"
+                                title="Предпросмотр"
+                                aria-label="Предпросмотр файла">
+                               👁️
+                          </button>
+              </template>
+             <template #meta>
+                  | Группа: <strong :title="`Текущая группа: ${file.UserGroup || 'Не назначена'}`">{{ file.UserGroup || 'N/A' }}</strong>
+                  | Тип: {{ file.ContentType || 'N/A' }}
+             </template>
+           </FileListItem>
+      </ul>
+        <div v-else-if="!isLoading && !isLoadingSearch && !error" class="no-files-message">
             <p>{{ isUsingSearchResults ? 'Файлы не найдены по вашему запросу.' : 'У вас пока нет загруженных файлов.' }}</p>
-         </div>
+        </div>
     </div>
      <div v-else-if="isLoading && !isLoadingSearch" class="loading-indicator"> Загрузка файлов... </div>
 
@@ -72,8 +91,8 @@
                          {{ group }}
                      </option>
                  </select>
-                  <small v-if="currentUserGroups.length === 0">Вы не состоите ни в одной группе.</small>
-              </div>
+                 <small v-if="currentUserGroups.length === 0">Вы не состоите ни в одной группе, поэтому не можете сменить группу файла.</small>
+                </div>
               <div class="modal-actions">
                  <button @click="changeFileGroup" :disabled="isUpdatingGroup || !selectedNewGroup || selectedNewGroup === fileToChangeGroup?.UserGroup" class="save-button"> {{ isUpdatingGroup ? 'Сохранение...' : 'Сохранить' }} </button>
                  <button @click="closeChangeGroupModal" :disabled="isUpdatingGroup" class="cancel-button">Отмена</button>
@@ -88,9 +107,10 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
-import { formatBytes, formatDate } from '@/utils/formatters';
 import FilePreviewModal from '@/components/files/FilePreviewModal.vue';
+import FileListItem from '@/components/files/FileListItem.vue';
 
+const isDeleting = ref(null); // Флаг для удаления
 const files = ref([]); // Все файлы пользователя
 const searchResultsById = ref([]); // ID найденных файлов
 const searchQuery = ref('');
@@ -111,6 +131,63 @@ const isUpdatingGroup = ref(false);
 const changeGroupError = ref('');
 const currentUserGroups = ref([]);
 
+const getActionType = (fileId) => {
+  if (isDownloading.value === fileId) return 'download';
+  if (isDeleting.value === fileId) return 'delete';
+  return null;
+};
+
+// MyFilesView.vue -> canChangeGroup
+const canChangeGroup = (file) => {
+    console.log('[MyFiles] canChangeGroup called for file:', file?.OriginalName, 'FileUserId:', file?.UserId, 'FileGroup:', file?.UserGroup);
+    if (!file || !currentUserId.value) {
+        console.log('[MyFiles] canChangeGroup: Missing file or currentUserId.value');
+        return false;
+    }
+
+    console.log('[MyFiles] Current User Data:', { id: currentUserId.value, groups: currentUserGroups.value });
+
+    const isOwner = file.UserId === currentUserId.value;
+    console.log('[MyFiles] isOwner:', isOwner);
+
+    if (!isOwner) {
+         console.log('[MyFiles] canChangeGroup: Not the owner, returning false.');
+         return false;
+    }
+
+    const userHasAnyGroups = Array.isArray(currentUserGroups.value) && currentUserGroups.value.length > 0;
+    console.log('[MyFiles] userHasAnyGroups:', userHasAnyGroups);
+
+    if (!userHasAnyGroups) {
+        console.log('[MyFiles] canChangeGroup: User has no groups, returning false.');
+        return false;
+    }
+
+    const isFileWithoutGroup = !file.UserGroup;
+    const hasOtherGroups = currentUserGroups.value.some(g => g !== file.UserGroup);
+    console.log('[MyFiles] isFileWithoutGroup:', isFileWithoutGroup);
+    console.log('[MyFiles] hasOtherGroups (different from file group):', hasOtherGroups);
+
+    const result = isFileWithoutGroup || hasOtherGroups; // Условие изменено для ясности
+    console.log('[MyFiles] canChangeGroup final result:', result);
+
+    return result;
+};
+
+const downloadFileFromList = (fileId) => {
+    const file = filteredFiles.value.find(f => f.Id === fileId);
+    if (file) {
+        downloadFile(fileId, file.OriginalName);
+    }
+};
+
+const deleteFileFromList = (fileId) => {
+    const file = filteredFiles.value.find(f => f.Id === fileId);
+    if (file) {
+        deleteFile(fileId, file.OriginalName);
+    }
+};
+
 const filteredFiles = computed(() => {
     if (!isUsingSearchResults.value) {
         return files.value;
@@ -122,7 +199,7 @@ const filteredFiles = computed(() => {
     return files.value.filter(file => searchIdSet.has(file.Id));
 });
 
-const isActionInProgress = computed(() => (fileId) => isDownloading.value === fileId || (fileToChangeGroup.value?.Id === fileId && isUpdatingGroup.value));
+const isActionInProgress = computed(() => (fileId) => isDownloading.value === fileId || isDeleting.value === fileId || (fileToChangeGroup.value?.Id === fileId && isUpdatingGroup.value));
 
 const loadCurrentUser = () => {
      try {
@@ -146,6 +223,7 @@ const fetchMyFiles = async () => {
         //console.error('Error fetching my files:', err);
         files.value = []; // Очищаем при ошибке
         if (err.response && err.response.status === 401) { error.value = 'Сессия истекла.'; }
+        else if (err.response && err.response.status === 403) { error.value = 'Доступ запрещен.'; }
         else { error.value = 'Не удалось загрузить список файлов.'; }
     } finally { isLoading.value = false; }
 };
@@ -204,6 +282,43 @@ const downloadFile = async (fileId, originalName) => {
     } finally { isDownloading.value = null; }
 };
 
+const deleteFile = async (fileId, originalName) => {
+  if (isDeleting.value) return; // Не удалять, если уже идет удаление
+  if (!confirm(`Уверены, что хотите удалить файл "${originalName}"? Это действие необратимо.`)) {
+      return;
+  }
+
+  isDeleting.value = fileId; // Устанавливаем флаг удаления
+  error.value = '';
+
+  try {
+      await axios.delete(`/api/file/files/${fileId}`);
+
+      // Удаляем файл из локального списка
+      files.value = files.value.filter(f => f.Id !== fileId);
+      // Если были результаты поиска, удаляем и оттуда
+      if (isUsingSearchResults.value) {
+          searchResultsById.value = searchResultsById.value.filter(id => id !== fileId);
+      }
+      // Можно добавить сообщение об успехе, если нужно
+
+  } catch (err) {
+      console.error(`Error deleting file ${fileId}:`, err);
+      let deleteError = `Не удалось удалить файл "${originalName || fileId}".`;
+      if (err.response) {
+          if (err.response.status === 404) deleteError += ' Файл не найден.';
+          else if (err.response.status === 403) deleteError += ' У вас нет прав на удаление этого файла.';
+          else if (err.response.status === 401) deleteError = 'Сессия истекла.';
+          else deleteError += ` Ошибка сервера (${err.response.status}).`;
+      } else {
+          deleteError += ' Ошибка сети.';
+      }
+      error.value = deleteError;
+  } finally {
+      isDeleting.value = null; // Сбрасываем флаг удаления
+  }
+};
+
 const openPreviewModal = (file) => {
     //onsole.log('Opening preview. File object:', file);
     //console.log('Content Type being passed:', file.ContentType);
@@ -230,11 +345,14 @@ const downloadFileFromPreview = (fileId) => {
 };
 
 const openChangeGroupModal = (file) => {
-    //console.log("Opening change group modal for:", file);
-    fileToChangeGroup.value = { ...file };
-    selectedNewGroup.value = '';
-    changeGroupError.value = '';
-    showChangeGroupModal.value = true;
+    if (file.UserId !== currentUserId.value) {
+         alert("Вы можете изменять группу только для своих файлов.");
+         return;
+     }
+     fileToChangeGroup.value = { ...file };
+     selectedNewGroup.value = file.UserGroup || '';
+     changeGroupError.value = '';
+     showChangeGroupModal.value = true;
 };
 
 const closeChangeGroupModal = () => {
@@ -246,6 +364,11 @@ const closeChangeGroupModal = () => {
 
 const changeFileGroup = async () => {
     if (!fileToChangeGroup.value || !selectedNewGroup.value || isUpdatingGroup.value || selectedNewGroup.value === fileToChangeGroup.value.UserGroup) {
+        return;
+    }
+
+    if (!currentUserGroups.value.includes(selectedNewGroup.value)) {
+        changeGroupError.value = "Вы не состоите в выбранной группе.";
         return;
     }
     isUpdatingGroup.value = true;
@@ -260,17 +383,15 @@ const changeFileGroup = async () => {
         if (fileIndex > -1) {
             files.value[fileIndex].UserGroup = selectedNewGroup.value;
         }
-         const searchIndex = searchResultsById.value.findIndex(id => id === fileId);
-         if (searchIndex > -1) {
-            // unlucky
-         }
 
         closeChangeGroupModal();
 
     } catch (err) {
         console.error(`Error changing group for file ${fileId}:`, err);
         if (err.response) {
-            changeGroupError.value = `Ошибка (${err.response.status}): ${err.response.data?.title || err.response.data || 'Не удалось изменить группу.'}`;
+            if (err.response.status === 403) { changeGroupError.value = 'Недостаточно прав для изменения группы.'; }
+            else if (err.response.status === 404) { changeGroupError.value = 'Файл не найден.'; }
+            else { changeGroupError.value = `Ошибка (${err.response.status}): ${err.response.data?.title || err.response.data || 'Не удалось изменить группу.'}`; }
         } else { changeGroupError.value = 'Ошибка сети.'; }
     } finally {
         isUpdatingGroup.value = false;
@@ -278,8 +399,11 @@ const changeFileGroup = async () => {
 };
 
 // --- Lifecycle ---
-onMounted(() => { loadCurrentUser(); if (currentUserId.value) { fetchMyFiles(); } });
-
+onMounted(() => {
+    loadCurrentUser();
+    if (currentUserId.value) { fetchMyFiles(); }
+    else { error.value = "Не удалось загрузить ID пользователя. Функционал ограничен."; }
+ });
 
 onBeforeUnmount(() => {
     clearTimeout(searchTimeout.value);
@@ -288,6 +412,38 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+
+.file-list.no-bullets {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.clickable-list-item {
+    cursor: pointer;
+}
+
+.action-button {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    border-radius: 4px;
+    line-height: 1;
+    transition: transform 0.1s ease, color 0.2s ease;
+    min-width: 30px;
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.action-button:hover:not(:disabled) { transform: scale(1.1); }
+.action-button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.preview-button { color: #6f42c1; }
+.download-button { color: #007bff; }
+.delete-button { color: #dc3545; }
+.edit-group-button { color: #ffc107; }
+
 .my-files-view { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
 h2 { margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 

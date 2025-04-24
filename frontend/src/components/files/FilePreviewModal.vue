@@ -113,8 +113,8 @@ if (!fileBlob.value || !docxContainerRef.value) return;
 isRendering.value = true; renderingStatus.value = 'Рендеринг DOCX...'; error.value = '';
 //console.log('Attempting to render DOCX...');
 try {
-  console.log('Rendering into:', docxContainerRef.value);
-  console.log('Using Blob:', fileBlob.value);
+  //console.log('Rendering into:', docxContainerRef.value);
+  //console.log('Using Blob:', fileBlob.value);
   await renderAsync(fileBlob.value, docxContainerRef.value, null, {
     className: "docx",
     breakPages: true,
@@ -129,11 +129,18 @@ try {
   //console.log('DOCX rendered successfully.');
 } catch (renderError) {
   console.error("Error rendering DOCX:", renderError);
-  error.value = `Ошибка отображения DOCX. Попробуйте скачать файл.`;
-  if(docxContainerRef.value) { docxContainerRef.value.innerHTML = ''; }
-} finally {
-  isRendering.value = false; renderingStatus.value = '';
-}
+   if (!docxContainerRef.value || docxContainerRef.value.children.length === 0) {
+        error.value = `Ошибка отображения DOCX. Попробуйте скачать файл. (${renderError.message || renderError})`;
+        if(docxContainerRef.value) { docxContainerRef.value.innerHTML = ''; } // Очищаем, если ошибка критическая
+   } else {
+        console.warn("DOCX rendering finished with errors, but some content might be visible.", renderError);
+        // Не показываем ошибку пользователю, если что-то отрендерилось
+        error.value = '';
+   }
+  } finally {
+    isRendering.value = false;
+    renderingStatus.value = '';
+  }
 };
 
 
@@ -290,20 +297,18 @@ const extractPptxText = async () => {
 const fetchPreview = async () => {
   if (!props.fileId) return;
   isLoading.value = true; error.value = ''; revokeUrls(); isRendering.value = false;
-  console.log(`FilePreviewModal: Fetching preview for File ID: ${props.fileId}, Type: ${props.contentType}, Name: ${props.originalName}`); // Добавлен console.log
+  console.log(`FilePreviewModal: Fetching preview for File ID: ${props.fileId}, Type: ${props.contentType}, Name: ${props.originalName}`); 
 
-  const responseType = isPreviewableCsv.value || isPreviewablePptx.value ? 'blob' : 'blob'; // pptx тоже как blob
-  console.log(`Requesting with responseType: ${responseType}`); // Добавлен console.log
+  const responseType = isPreviewableCsv.value || isPreviewablePptx.value ? 'blob' : 'blob'; 
+  console.log(`Requesting with responseType: ${responseType}`); 
 
   try {
       const response = await axios.get(`/api/file/download/${props.fileId}`, {
       responseType: responseType, params: { inline: true }
       });
-      console.log('>>> Preview Data Received:', response.data); // Добавлен console.log
+      console.log('>>> Preview Data Received:', response.data); 
 
-      // Отдельно обрабатываем Text (для чистого CSV), иначе как Blob
       if (isPreviewableCsv.value && responseType === 'text') {
-           // Эту ветку можно удалить, если всегда запрашиваем blob
           if (typeof response.data === 'string' && response.data.length > 0) { csvText.value = response.data; }
           else { console.warn("Empty text response for CSV"); error.value = "CSV файл пуст."; }
       } else if (response.data instanceof Blob && response.data.size > 0) {
@@ -314,7 +319,7 @@ const fetchPreview = async () => {
               reader.onload = (e) => {
                   if (e.target.result && typeof e.target.result === 'string') {
                       csvText.value = e.target.result;
-                      parseAndDisplayCsv(); // Запускаем парсинг после чтения Blob как текст
+                      parseAndDisplayCsv(); 
                   } else {
                       //console.warn("Failed to read CSV blob as text");
                       error.value = "Не удалось прочитать данные CSV файла.";
@@ -346,8 +351,7 @@ const fetchPreview = async () => {
     }
   } finally {
     isLoading.value = false;
-    // Запускаем рендеринг/парсинг после обновления DOM и получения данных
-    await nextTick(); // Ждем обновления DOM
+    await nextTick();
     if (isPreviewableDocx.value && fileBlob.value) { renderDocx(); }
     else if (isPreviewablePptx.value && pptxFileBlob.value) { extractPptxText(); }
   }

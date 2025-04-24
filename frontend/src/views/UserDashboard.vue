@@ -13,6 +13,7 @@
   
       <nav class="dashboard-nav">
         <router-link :to="{ name: 'MyFiles' }" class="nav-link">Мои файлы</router-link>
+        <router-link :to="{ name: 'GroupFiles' }" class="nav-link">Файлы группы</router-link>
         <router-link :to="{ name: 'UploadFile' }" class="nav-link">Загрузить файл</router-link>
       </nav>
   

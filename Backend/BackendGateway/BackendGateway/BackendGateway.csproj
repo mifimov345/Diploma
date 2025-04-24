@@ -13,6 +13,25 @@
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+	  <Content Update="appsettings.Development.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <!-- или Always -->
+		  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		  <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		  <!-- Важно для publish -->
+	  </Content>
+	  <Content Update="appsettings.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+		  <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>

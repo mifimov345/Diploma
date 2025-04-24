@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "QpfK3ltASK5g/WzMAGsbWR9geh0HFa4jokwUtaP8kL1OcLRQg2OtCVQeiSfyJoU7hwpVYjdNAKmQDzvA/KWseQ==",
+  "dgSpecHash": "xuIr9+ZsF62WA0nXVebOjWxHS63u5jKl6ptoDP3x7wNZ8ywKXRu5TTwsG1/ln9XVrcb2E11tsDbL+QGsSONlwA==",
   "success": true,
   "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway\\BackendGateway.csproj",
   "expectedPackageFiles": [
@@ -9,7 +9,9 @@
     "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore\\6.4.0\\swashbuckle.aspnetcore.6.4.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\6.4.0\\swashbuckle.aspnetcore.swagger.6.4.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\6.4.0\\swashbuckle.aspnetcore.swaggergen.6.4.0.nupkg.sha512",
-    "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\6.4.0\\swashbuckle.aspnetcore.swaggerui.6.4.0.nupkg.sha512"
+    "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\6.4.0\\swashbuckle.aspnetcore.swaggerui.6.4.0.nupkg.sha512",
+    "C:\\Users\\mifim\\.nuget\\packages\\system.io.hashing\\8.0.0\\system.io.hashing.8.0.0.nupkg.sha512",
+    "C:\\Users\\mifim\\.nuget\\packages\\yarp.reverseproxy\\2.3.0\\yarp.reverseproxy.2.3.0.nupkg.sha512"
   ],
   "logs": []
 }

@@ -46,40 +46,39 @@ namespace AuthService.Controllers
             {
                 User newUser;
                 var userToCreate = new User { Username = model.Username };
-
-                if (model.Role == Roles.Admin)
+                if (creatorRole == Roles.SuperAdmin) // Если создает SuperAdmin
                 {
-                    if (creatorRole != Roles.SuperAdmin)
+                    if (model.Role == Roles.Admin)
                     {
-                        //_logger.LogWarning("Forbidden attempt to create Admin by non-SuperAdmin. Creator ID: {CreatorId}, Role: {CreatorRole}", creatorId, creatorRole);
-                        return Forbid("Only SuperAdmins can create Admins.");
+                        if (model.Groups == null || !model.Groups.Any(g => !string.IsNullOrWhiteSpace(g)))
+                        {
+                            return BadRequest("Initial group(s) are required when creating an Admin.");
+                        }
+                        newUser = _userService.CreateAdmin(userToCreate, model.Password, model.Groups.Where(g => !string.IsNullOrWhiteSpace(g)).ToList(), creatorId);
                     }
-                    if (model.Groups == null || !model.Groups.Any(g => !string.IsNullOrWhiteSpace(g)))
+                    else 
                     {
-                        //_logger.LogWarning("Admin creation failed for {Username}: No valid initial groups provided.", model.Username);
-                        return BadRequest("Initial group(s) are required when creating an Admin.");
+                        newUser = _userService.CreateUserBySuperAdmin(userToCreate, model.Password, model.Groups?.Where(g => !string.IsNullOrWhiteSpace(g)).ToList() ?? new List<string>());
                     }
-
-                    newUser = _userService.CreateAdmin(userToCreate, model.Password, model.Groups.Where(g => !string.IsNullOrWhiteSpace(g)).ToList(), creatorId);
-                    //_logger.LogInformation("Admin '{NewUsername}' (ID: {NewUserId}) created successfully by SuperAdmin ID: {CreatorId}", newUser.Username, newUser.Id, creatorId);
                 }
                 else
                 {
-                    if (creatorRole == Roles.SuperAdmin)
+                    if (model.Role != null && model.Role != Roles.User)
                     {
-                        newUser = _userService.CreateUserBySuperAdmin(userToCreate, model.Password, model.Groups?.Where(g => !string.IsNullOrWhiteSpace(g)).ToList());
-                        //_logger.LogInformation("User '{NewUsername}' (ID: {NewUserId}) created successfully by SuperAdmin ID: {CreatorId}", newUser.Username, newUser.Id, creatorId);
+                        _logger.LogWarning("Admin ID {AdminId} attempted to create a non-User role.", creatorId);
+                        return Forbid("Admins can only create users with the 'User' role.");
                     }
-                    else
+                    if (model.Groups == null || model.Groups.Count != 1 || string.IsNullOrWhiteSpace(model.Groups[0]))
                     {
-                        if (model.Groups != null && model.Groups.Any())
-                        {
-                            //_logger.LogWarning("Admin ID {AdminId} attempted to assign groups while creating user {Username}.", creatorId, model.Username);
-                            return BadRequest("Admins cannot assign groups when creating users. Groups are inherited automatically.");
-                        }
-                        newUser = _userService.CreateUserByAdmin(userToCreate, model.Password, creatorId);
-                        //_logger.LogInformation("User '{NewUsername}' (ID: {NewUserId}) created successfully by Admin ID: {CreatorId}", newUser.Username, newUser.Id, creatorId);
-                    }
+
+                        _logger.LogWarning("Admin ID {AdminId} must specify exactly one valid group when creating a user.", creatorId);
+                        return BadRequest("You must specify exactly one valid group for the new user.");
+                }
+                    
+                    string targetGroup = model.Groups[0].Trim();
+                    
+                    newUser = _userService.CreateUserByAdmin(userToCreate, model.Password, creatorId, targetGroup);
+
                 }
 
                 var result = new { newUser.Id, newUser.Username, newUser.Role, newUser.Groups };
@@ -179,7 +178,7 @@ namespace AuthService.Controllers
         }
 
         [HttpPut("users/{id:int}/groups")]
-        [Authorize(Roles = Roles.SuperAdmin)]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public IActionResult UpdateUserGroups(int id, [FromBody] List<string> groupNames)
         {
             var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -267,10 +266,11 @@ namespace AuthService.Controllers
 
 
         [HttpPost("groups")]
-        [Authorize(Roles = Roles.SuperAdmin)]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public IActionResult CreateGroup([FromBody] GroupCreateModel model)
         {
-            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var creatorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var creatorRole = User.FindFirstValue(ClaimTypes.Role);            
             //_logger.LogInformation("CreateGroup requested: '{GroupName}' by SuperAdmin ID: {AdminId}", model?.GroupName, adminId);
 
             if (!ModelState.IsValid)
@@ -286,17 +286,21 @@ namespace AuthService.Controllers
 
             var groupNameToCreate = model.GroupName.Trim();
 
+            if (groupNameToCreate.Equals("System", StringComparison.OrdinalIgnoreCase)){
+                //_logger.LogWarning("Attempt to create reserved group name 'System' by User ID: {CreatorId}", creatorId);
+                return BadRequest("Group name 'System' is reserved.");
+            }
             try
             {
-                bool created = _userService.CreateGroup(groupNameToCreate);
+                bool created = _userService.CreateGroup(groupNameToCreate, creatorId, creatorRole);
                 if (created)
                 {
-                    //_logger.LogInformation("Group '{GroupName}' created successfully by SuperAdmin ID: {AdminId}.", groupNameToCreate, adminId);
+                    //_logger.LogInformation("Group '{GroupName}' created successfully by User ID: {CreatorId} (Role: {CreatorRole}).", groupNameToCreate, 
                     return Ok(new { message = $"Group '{groupNameToCreate}' created successfully." });
                 }
                 else
                 {
-                    //_logger.LogWarning("Attempt to create existing group '{GroupName}' by SuperAdmin ID: {AdminId}.", groupNameToCreate, adminId);
+                    //_logger.LogWarning("Attempt to create existing group '{GroupName}' by User ID: {CreatorId}.", groupNameToCreate, creatorId);
                     return Conflict(new { message = $"Group '{groupNameToCreate}' already exists." });
                 }
             }
@@ -313,12 +317,21 @@ namespace AuthService.Controllers
         }
 
         [HttpGet("groups")]
-        [Authorize(Roles = Roles.SuperAdmin)]
+        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
         public IActionResult GetGroups()
         {
-            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
+            IEnumerable<string> groups;
+            if (userRole == Roles.SuperAdmin)
+            {
+                groups = _userService.GetAllGroupNames();
+            }
+            else
+            {
+                groups = _userService.GetGroupsForAdmin(userId);
+            }
             //_logger.LogInformation("GetGroups requested by SuperAdmin ID: {AdminId}", adminId);
-            var groups = _userService.GetAllGroupNames();
 
             var groupsList = groups as List<string> ?? groups?.ToList();
             var groupsType = groups?.GetType().FullName ?? "null";
@@ -447,7 +460,7 @@ namespace AuthService.Controllers
     public class GroupCreateModel
     {
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "GroupName is required.")]
-        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-zA-Z0-9_\-\.]+$", ErrorMessage = "Group name can only contain letters, numbers, underscore, hyphen, and period.")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^[a-zA-Z0-9_.-]+$", ErrorMessage = "Group name can only contain letters, numbers, underscore, hyphen, and period.")]
         [System.ComponentModel.DataAnnotations.MaxLength(50, ErrorMessage = "Group name cannot exceed 50 characters.")]
         public string GroupName { get; set; }
     }

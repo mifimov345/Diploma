@@ -14,7 +14,7 @@
             :disabled="isLoading"
             placeholder="Например, Marketing_Team"
             maxlength="50"
-            pattern="^[a-zA-Z0-9_\-\.]+$"
+            pattern="^[a-zA-Z0-9_.\-]+$"
             title="Имя группы может содержать буквы, цифры, _, -, ."
           />
           <small>Разрешены буквы, цифры, _, -, . (макс. 50 симв.)</small>
@@ -74,18 +74,30 @@ export default {
       isListLoading: false,
       listError: '',
       isDeleting: null,
+      currentUserRole: null,
     };
   },
   computed: {
+      isSuperAdmin() {
+         return this.currentUserRole === 'SuperAdmin';
+     },
       isGroupNameValid() {
-          const pattern = /^[a-zA-Z0-9_]+$/;
+        if (this.newGroupName.toLowerCase() === 'system') return false;
+          const pattern = /^[a-zA-Z0-9_.-]+$/; // Оставляем ваш паттерн
           return pattern.test(this.newGroupName) && this.newGroupName.length <= 50;
       },
       sortedGroups() {
-          return [...this.groups].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+          // Фильтруем "System", если пользователь не SuperAdmin
+         const filtered = this.isSuperAdmin
+             ? this.groups
+             : this.groups.filter(g => g.toLowerCase() !== 'system');
+         return [...filtered].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
       }
   },
   methods: {
+    loadCurrentUser() {
+        this.currentUserRole = localStorage.getItem('userRole');
+    },
     async fetchGroups() {
       this.isListLoading = true;
       this.listError = '';
@@ -96,7 +108,7 @@ export default {
         if (Array.isArray(response.data) && response.data.every(item => typeof item === 'string')) {
              this.groups = response.data;
              //console.log('>>> AdminGroupManagement groups assigned (count):', this.groups.length);
-             if (this.groups.length === 0) {
+             if (this.groups.length === 0 && this.isSuperAdmin) {
                  this.listError = '';
              }
         } else {
@@ -124,17 +136,36 @@ export default {
         this.message = response.data.message || `Группа "${groupNameToCreate}" успешно создана.`;
         this.messageType = 'success';
         this.newGroupName = '';
+        // --- Добавляем обновление localStorage ---
+        try {
+            const currentGroups = JSON.parse(localStorage.getItem('userGroups') || '[]');
+            if (!currentGroups.includes(groupNameToCreate)) {
+                currentGroups.push(groupNameToCreate);
+                localStorage.setItem('userGroups', JSON.stringify(currentGroups));
+                console.log('Updated userGroups in localStorage:', currentGroups);
+                // Оповестить другие компоненты об обновлении? (Сложнее)
+            }
+        } catch (e) {
+            console.error("Failed to update userGroups in localStorage", e);
+        }
         await this.fetchGroups();
       } catch (err) {
         //console.error("Error creating group:", err);
         this.message = err.response?.data?.message || 'Ошибка при создании группы.';
         this.messageType = 'error';
+        if (err.response?.status === 403) {
+          this.message = 'У вас нет прав на создание групп.';
+       }
       } finally {
         this.isLoading = false;
       }
     },
     async deleteGroup(groupName) {
-       if (this.isDeleting) return;
+       if (this.isDeleting || groupName.toLowerCase() === 'system') return;
+       if (!this.isSuperAdmin) {
+          alert('Только SuperAdmin может удалять группы.');
+          return;
+      }
        if (groupName.toLowerCase() === 'system') {
            alert('Системную группу нельзя удалить.');
            return;
@@ -151,12 +182,16 @@ export default {
       } catch (err) {
         //console.error(`Error deleting group ${groupName}:`, err);
         this.listError = `Ошибка при удалении группы "${groupName}": ${err.response?.data?.message || err.message}`;
+        if (err.response?.status === 403) {
+          this.listError = 'У вас нет прав на удаление групп.';
+       }
       } finally {
         this.isDeleting = null;
       }
     },
   },
   mounted() {
+    this.loadCurrentUser();
     this.fetchGroups();
   }
 };

@@ -14,6 +14,8 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace FileService.Controllers
 {
@@ -60,6 +62,8 @@ namespace FileService.Controllers
             }
         }
 
+        internal const string GroupClaimTypeUri = "http://schemas.xmlsoap.org/claims/Group";
+
         [HttpPut("files/{id}/group")]
         [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")] // Разрешаем всем авторизованным
         public async Task<IActionResult> UpdateFileGroup(Guid id, [FromBody] UpdateFileGroupRequest model)
@@ -69,11 +73,12 @@ namespace FileService.Controllers
             int currentUserId;
             string currentUserRole;
             List<string> currentUserGroups;
+            const string groupClaimType = "http://schemas.xmlsoap.org/claims/Group";
             try
             {
                 currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                 currentUserRole = User.FindFirstValue(ClaimTypes.Role) ?? "";
-                currentUserGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                currentUserGroups = User.FindAll(groupClaimType).Select(c => c.Value).ToList();
                 if (string.IsNullOrEmpty(currentUserRole)) throw new Exception("User role claim is missing.");
                 //_logger.LogInformation("UpdateFileGroup request for File ID {FileId} to Group '{NewGroup}' by User ID {UserId}, Role: {UserRole}",
                 //    id, model.NewGroup, currentUserId, currentUserRole);
@@ -81,7 +86,7 @@ namespace FileService.Controllers
             catch (Exception ex)
             {
                 //_logger.LogError(ex, "Unexpected error updating group for File ID {FileId}", id);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while updating the file group.");
+                return Unauthorized("Invalid user claims in token.");
             }
             try
             {
@@ -109,8 +114,8 @@ namespace FileService.Controllers
         }
         public class UpdateFileGroupRequest
         {
-            [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "New group name is required.")]
-            [System.ComponentModel.DataAnnotations.MinLength(1, ErrorMessage = "Group name cannot be empty.")]
+            [Required(ErrorMessage = "Необходимо указать новую группу.")]
+            [RegularExpression(@"^[a-zA-Z0-9_\-\.]+$", ErrorMessage = "Имя группы может содержать только буквы, цифры, _, -, .")]
             public string NewGroup { get; set; } = string.Empty;
         }
 
@@ -118,12 +123,11 @@ namespace FileService.Controllers
         [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
         public async Task<IActionResult> UploadFile([FromForm] FileUploadModel model)
         {
-            if (model.File == null || model.File.Length == 0)
+            if (!ModelState.IsValid) // Проверяем валидность модели
             {
-                //_logger.LogWarning("UploadFile attempt with no file.");
-                return BadRequest("No file uploaded.");
+                _logger.LogWarning("UploadFile validation failed. User: {Identity}", User.Identity?.Name ?? "N/A");
+                return BadRequest(ModelState);
             }
-
             // Ограничение размера файла (пример: 100MB)
             long maxFileSize = 100 * 1024 * 1024;
             if (model.File.Length > maxFileSize)
@@ -133,22 +137,67 @@ namespace FileService.Controllers
             }
 
             int userId;
-            string userPrimaryGroup;
+            List<string> userGroups;
+            string? userRoleClaimValue;
             try
             {
                 userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-                userPrimaryGroup = User.FindAll("group").FirstOrDefault()?.Value ?? "Default";
+                userRoleClaimValue = User.FindFirstValue(ClaimTypes.Role);
+
+                // --- Логируем ВСЕ клеймы пользователя ---
+                var allClaims = User.Claims.Select(c => $"Type={c.Type}, Value={c.Value}").ToList();
+                _logger.LogInformation("UploadFile - ALL User Claims ({ClaimCount}): [{ClaimsList}]", allClaims.Count, string.Join(" | ", allClaims));
+                // ----------------------------------------
+
+                // Теперь попробуем найти группы снова, используя ТОЧНЫЙ тип ClaimTypes.Role
+                const string groupClaimType = "http://schemas.xmlsoap.org/claims/Group"; // <-- Используем тип из лога
+                userGroups = User.FindAll(groupClaimType)
+                                             .Select(c => c.Value)
+                                             .ToList();
+
+                _logger.LogInformation("UploadFile - User Claims: ID={UserId}, MainRole={UserRole}, Found Group Claims (Type='{GroupClaimType}'): [{UserGroups}]",
+                userId, userRoleClaimValue ?? "N/A", groupClaimType, string.Join(",", userGroups));
+
+                if (userGroups == null || !userGroups.Any())
+                {
+                    _logger.LogWarning("Upload attempt by User ID {UserId} failed: User has no group claims with type '{GroupClaimType}'.", userId, groupClaimType);
+                    return StatusCode(StatusCodes.Status403Forbidden, "You must belong to at least one group to upload files.");
+                }
+
+                // Проверка принадлежности к targetGroup
+                if (!userGroups.Contains(model.TargetGroup))
+                {
+                    _logger.LogWarning("Upload attempt by User ID {UserId} failed: User does not belong to the target group '{TargetGroup}'. User groups: [{UserGroups}]", userId, model.TargetGroup, string.Join(",", userGroups));
+                    return StatusCode(StatusCodes.Status403Forbidden, $"You do not have permission to upload to group '{model.TargetGroup}'.");
+                }
+                userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+                userGroups = User.FindAll(GroupClaimTypeUri) // <-- Используем константу/литерал
+                                             .Select(c => c.Value)
+                                             .ToList(); var userRoleClaim = User.FindFirstValue(ClaimTypes.Role); // Получаем роль для лога
+                _logger.LogInformation("UploadFile - User Claims: ID={UserId}, Role={UserRole}, Found Group Claims (Type='{GroupClaimTypeUri}'): [{UserGroups}]",userId, userRoleClaimValue ?? "N/A", GroupClaimTypeUri, string.Join(",", userGroups));
                 //_logger.LogInformation("UploadFile request by User ID {UserId}, Primary Group: {Group}", userId, userPrimaryGroup);
+                if (userGroups == null || !userGroups.Any())
+                {
+                    _logger.LogWarning("Upload attempt by User ID {UserId} failed: User has no group claims with type '{GroupClaimTypeUri}'.", userId, GroupClaimTypeUri);
+                    return StatusCode(StatusCodes.Status403Forbidden, "You must belong to at least one group to upload files.");
+                }
+                //_logger.LogInformation("UploadFile request by User ID {UserId}, Target Group: {TargetGroup}", userId, model.TargetGroup);
             }
             catch (Exception ex)
             {
                 //_logger.LogError(ex, "Error parsing user claims during file upload. User: {Identity}", User.Identity?.Name ?? "N/A");
                 return Unauthorized("Invalid user claims in token.");
             }
+            _logger.LogInformation("Checking TargetGroup: Model.TargetGroup='{TargetGroup}', UserGroups=[{UserGroups}]", model.TargetGroup, string.Join(",", userGroups));
+            // Проверка: пользователь должен состоять в группе, которую он выбрал
+            if (!userGroups.Contains(model.TargetGroup))
+            {
+                _logger.LogWarning("Upload attempt by User ID {UserId} failed: User does not belong to the target group '{TargetGroup}'.", userId, model.TargetGroup);
+                return Forbid($"You do not have permission to upload to group '{model.TargetGroup}'.");
+            }
 
-            string safeGroupName = string.Join("_", userPrimaryGroup.Split(Path.GetInvalidFileNameChars())); // Делаем имя папки безопасным
-            string userDirectoryPath = Path.Combine(_uploadBasePath, safeGroupName, userId.ToString());
-
+            // Используем ID пользователя для директории, чтобы избежать конфликтов имен групп
+            string userDirectoryPath = Path.Combine(_uploadBasePath, userId.ToString());
             try
             {
                 Directory.CreateDirectory(userDirectoryPath); // Создаем директорию, если её нет
@@ -182,7 +231,7 @@ namespace FileService.Controllers
                     SizeBytes = model.File.Length,
                     UploadedAt = DateTime.UtcNow,
                     UserId = userId,
-                    UserGroup = userPrimaryGroup,
+                    UserGroup = model.TargetGroup,
                     FilePath = filePath
                 };
                 await _metadataService.AddMetadataAsync(metadata);
@@ -209,72 +258,101 @@ namespace FileService.Controllers
 
         [HttpGet("files")]
         [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
-        public async Task<IActionResult> GetFiles()
+        public async Task<IActionResult> GetFiles([FromQuery] string scope = "default")
         {
             int userId;
-            string userRole;
+            string? userRole;
             List<string> userGroups;
+            const string groupClaimType = "http://schemas.xmlsoap.org/claims/Group"; // Или "group", если вернул в AuthService
+
             try
             {
                 userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                 userRole = User.FindFirstValue(ClaimTypes.Role);
-                userGroups = User.FindAll("group").Select(c => c.Value).ToList();
-                //_logger.LogInformation("GetFiles request by User ID {UserId}, Role {UserRole}", userId, userRole);
+                userGroups = User.FindAll(groupClaimType).Select(c => c.Value).ToList();
+                _logger.LogInformation("GetFiles request by User ID {UserId}, Role {UserRole}, Groups=[{Groups}], Scope={Scope}", userId, userRole ?? "N/A", string.Join(",", userGroups), scope);
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error parsing user claims during GetFiles. User: {Identity}", User.Identity?.Name ?? "N/A");
+                _logger.LogError(ex, "Error parsing user claims during GetFiles. User: {Identity}", User.Identity?.Name ?? "N/A");
                 return Unauthorized("Invalid user claims in token.");
             }
 
-            IEnumerable<FileMetadata> files;
-            IEnumerable<object> result;
+            IEnumerable<FileMetadata> files = Enumerable.Empty<FileMetadata>(); // Инициализируем пустым списком
 
             try
             {
+                // 1. Определяем, какие файлы нужно получить из сервиса метаданных
                 if (userRole == AppRoles.SuperAdmin)
                 {
+                    // SuperAdmin всегда видит все файлы
                     files = await _metadataService.GetAllMetadataAsync();
-                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
                 }
                 else if (userRole == AppRoles.Admin)
                 {
-                    files = await _metadataService.GetMetadataByUserGroupsAsync(userGroups, userId);
-                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
+                    if (scope.Equals("all", StringComparison.OrdinalIgnoreCase)) // Админ на странице "Обзор файлов"
+                    {
+                        // Админ видит свои файлы И файлы из своих групп
+                        files = await _metadataService.GetMetadataByUserGroupsAsync(userGroups, userId);
+                    }
+                    else if (scope.Equals("group", StringComparison.OrdinalIgnoreCase)) // Админ на странице "Файлы группы" (если будет)
+                    {
+                        // Админ видит файлы группы (не свои)
+                        files = await _metadataService.GetGroupFilesForUserAsync(userId, userGroups);
+                    }
+                    else // Admin на странице "Мои файлы" (scope="default")
+                    {
+                        // Админ видит ТОЛЬКО свои файлы
+                        files = await _metadataService.GetMetadataByUserAsync(userId);
+                    }
                 }
-                else
+                else // User
                 {
-                    files = await _metadataService.GetMetadataByUserAsync(userId);
-                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.SizeBytes, f.UploadedAt, f.ContentType });
+                    if (scope.Equals("group", StringComparison.OrdinalIgnoreCase)) // Пользователь на странице "Файлы группы"
+                    {
+                        // Пользователь видит файлы группы (не свои)
+                        files = await _metadataService.GetGroupFilesForUserAsync(userId, userGroups);
+                    }
+                    else // Пользователь на странице "Мои файлы" (scope="default")
+                    {
+                        // Пользователь видит ТОЛЬКО свои файлы
+                        files = await _metadataService.GetMetadataByUserAsync(userId);
+                    }
                 }
-                //_logger.LogInformation("Returning {FileCount} files for User ID {UserId}", files.Count(), userId);
+
+                IEnumerable<object> result;
+                result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
+
+
+                _logger.LogInformation("Returning {FileCount} files for User ID {UserId} with scope '{Scope}'", files.Count(), userId, scope);
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                //_logger.LogError(ex, "Error retrieving files for User ID {UserId}", userId);
+                _logger.LogError(ex, "Error retrieving files for User ID {UserId}, Scope {Scope}", userId, scope);
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving files.");
             }
         }
 
         [HttpGet("search")]
         [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
-        public async Task<IActionResult> SearchFiles([FromQuery] string term)
+        public async Task<IActionResult> SearchFiles([FromQuery] string term, [FromQuery] string scope = "default")
         {
             if (string.IsNullOrWhiteSpace(term))
             {
                 //_logger.LogInformation("Search request with empty term.");
-                return Ok(Enumerable.Empty<object>()); // Пустой запрос - пустой результат
+                return Ok(Enumerable.Empty<object>());
             }
 
             int userId;
             string userRole;
             List<string> userGroups;
+            const string groupClaimType = "http://schemas.xmlsoap.org/claims/Group";
             try
             {
                 userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                 userRole = User.FindFirstValue(ClaimTypes.Role);
-                userGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                userGroups = User.FindAll(groupClaimType).Select(c => c.Value).ToList();
                 //_logger.LogInformation("SearchFiles request by User ID {UserId}, Role {UserRole}, Term: '{SearchTerm}'", userId, userRole, term);
             }
             catch (Exception ex)
@@ -285,10 +363,13 @@ namespace FileService.Controllers
 
             try
             {
-                var files = await _metadataService.SearchMetadataAsync(term, userId, userRole, userGroups);
-
                 IEnumerable<object> result;
-                if (userRole == AppRoles.SuperAdmin || userRole == AppRoles.Admin)
+                var files = await _metadataService.SearchMetadataAsync(term, userId, userRole, userGroups);
+                if (userRole == AppRoles.User && scope.Equals("group", StringComparison.OrdinalIgnoreCase))
+                {
+                    result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
+                }
+                else if (userRole == AppRoles.SuperAdmin || userRole == AppRoles.Admin)
                 {
                     result = files.Select(f => new { f.Id, f.OriginalName, f.UserGroup, f.UserId, f.SizeBytes, f.UploadedAt, f.ContentType });
                 }
@@ -315,11 +396,12 @@ namespace FileService.Controllers
             int currentUserId;
             string currentUserRole;
             List<string> currentUserGroups;
+            const string groupClaimType = "http://schemas.xmlsoap.org/claims/Group";
             try
             {
                 currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                 currentUserRole = User.FindFirstValue(ClaimTypes.Role);
-                currentUserGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                currentUserGroups = User.FindAll(groupClaimType).Select(c => c.Value).ToList();
                 //_logger.LogDebug("Requesting user details - ID: {UserId}, Role: {UserRole}, Groups: [{Groups}]", currentUserId, currentUserRole, string.Join(",", currentUserGroups));
             }
             catch (Exception ex)
@@ -347,12 +429,15 @@ namespace FileService.Controllers
             //_logger.LogDebug("Metadata retrieved for File ID {FileId}. Owner ID: {OwnerId}, Group: {OwnerGroup}, Path: {FilePath}", id, metadata.UserId, metadata.UserGroup, metadata.FilePath);
 
 
-            bool canDownload = false;
-            if (currentUserRole == AppRoles.SuperAdmin) canDownload = true;
-            else if (currentUserRole == AppRoles.Admin) canDownload = (metadata.UserId == currentUserId) || (metadata.UserGroup != null && currentUserGroups.Contains(metadata.UserGroup));
-            else if (currentUserRole == AppRoles.User) canDownload = (metadata.UserId == currentUserId);
+            bool canAccess = false;
+            if (currentUserRole == AppRoles.SuperAdmin) canAccess = true;
+            else if (currentUserRole == AppRoles.Admin)
+            {
+                canAccess = (metadata.UserId == currentUserId) || (metadata.UserGroup != null && currentUserGroups.Contains(metadata.UserGroup));
+            }
+            else if (currentUserRole == AppRoles.User) canAccess = (metadata.UserId == currentUserId);
 
-            if (!canDownload)
+            if (!canAccess)
             {
                 //_logger.LogWarning("Access DENIED for User ID {UserId} (Role: {UserRole}) to download File ID {FileId} owned by User ID {OwnerId}", currentUserId, currentUserRole, id, metadata.UserId);
                 return Forbid("You do not have permission to access this file.");
@@ -434,21 +519,21 @@ namespace FileService.Controllers
 
 
         [HttpDelete("files/{id}")]
-        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin}")]
+        [Authorize(Roles = $"{AppRoles.SuperAdmin},{AppRoles.Admin},{AppRoles.User}")]
         public async Task<IActionResult> DeleteFile(Guid id)
         {
             _logger.LogInformation("Delete request for File ID {FileId}", id);
             int currentUserId;
             string currentUserRole;
             List<string> currentUserGroups;
-
+            const string groupClaimType = "http://schemas.xmlsoap.org/claims/Group";
             try
             {
                 try
                 {
                     currentUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
                     currentUserRole = User.FindFirstValue(ClaimTypes.Role);
-                    currentUserGroups = User.FindAll("group").Select(c => c.Value).ToList();
+                    currentUserGroups = User.FindAll(groupClaimType).Select(c => c.Value).ToList();
                     //_logger.LogDebug("Requesting user for delete - ID: {UserId}, Role: {UserRole}", currentUserId, currentUserRole);
                 }
                 catch (Exception exParse)
@@ -479,7 +564,14 @@ namespace FileService.Controllers
 
                 bool canDelete = false;
                 if (currentUserRole == AppRoles.SuperAdmin) canDelete = true;
-                else if (currentUserRole == AppRoles.Admin) canDelete = (metadata.UserId == currentUserId) || (metadata.UserGroup != null && currentUserGroups.Contains(metadata.UserGroup));
+                else if (currentUserRole == AppRoles.Admin)
+                {
+                    canDelete = (metadata.UserId == currentUserId) || (metadata.UserGroup != null && currentUserGroups.Contains(metadata.UserGroup));
+                }
+                else
+                {
+                    canDelete = (metadata.UserId == currentUserId);
+                }
 
                 if (!canDelete)
                 {
@@ -526,7 +618,7 @@ namespace FileService.Controllers
 
 
         [HttpGet("internal/download/{id}")]
-        [AllowAnonymous] // <-- Разрешаем анонимный доступ, но доступ должен ограничиваться сетью Docker
+        [AllowAnonymous]
         public async Task<IActionResult> InternalDownloadFile(Guid id)
         {
             //_logger.LogInformation("Internal download request received for File ID {FileId}", id);
@@ -632,7 +724,11 @@ namespace FileService.Controllers
 
     public class FileUploadModel
     {
-        [System.ComponentModel.DataAnnotations.Required]
-        public Microsoft.AspNetCore.Http.IFormFile File { get; set; }
+        [Required(ErrorMessage = "Необходимо выбрать файл.")]
+        public IFormFile File { get; set; }
+
+        [Required(ErrorMessage = "Необходимо выбрать группу.")]
+        [RegularExpression(@"^[a-zA-Z0-9_\-\.]+$", ErrorMessage = "Недопустимое имя группы.")]
+        public string TargetGroup { get; set; }
     }
 }

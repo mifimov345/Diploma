@@ -15,33 +15,45 @@
                <input id="new-password" type="password" v-model="newUser.password" required :disabled="isLoading" placeholder="Надежный пароль"/>
              </div>
          </div>
-          <div v-if="isSuperAdmin" class="form-row">
+          <div class="form-row">
              <div class="form-group">
                <label for="new-role">Роль:</label>
-               <select id="new-role" v-model="newUser.role" required :disabled="isLoading">
+               <select id="new-role" v-model="newUser.role" required :disabled="isLoading || !isSuperAdmin">
                  <option value="User">User (Пользователь)</option>
-                 <option value="Admin">Admin (Администратор)</option>
+                 <option v-if="isSuperAdmin" value="Admin">Admin (Администратор)</option>
                </select>
              </div>
              <div class="form-group">
              </div>
           </div>
-           <div v-if="isSuperAdmin" class="form-row">
+           <div class="form-row">
               <div class="form-group full-width">
-                 <label>Группы:</label>
-                  <div v-if="availableGroups.length > 0" class="checkbox-group">
-                      <label v-for="group in availableGroups" :key="group" class="checkbox-label">
+                 <label for="group-assignment">{{ isSuperAdmin ? 'Группы (можно несколько):' : 'Группа (выберите одну):' }}</label>
+                  <div v-if="isSuperAdmin && availableGroups.length > 0">
+                    <label v-for="group in availableGroups" :key="group" class="checkbox-label">
                         <input type="checkbox" :value="group" v-model="newUser.groups" :disabled="isLoading"/>
                         {{ group }}
                       </label>
                   </div>
-                  <div v-else>
-                      <p>Сначала <router-link :to="{name: 'AdminGroups'}">создайте группы</router-link>.</p>
+                  <div v-else-if="!isSuperAdmin && adminAssignableGroups.length > 0">
+                      <select id="group-assignment" v-model="selectedGroupForNewUser" required :disabled="isLoading">
+                           <option disabled value="">-- Выберите группу --</option>
+                           <option v-for="group in adminAssignableGroups" :key="group" :value="group">
+                               {{ group }}
+                           </option>
+                      </select>
                   </div>
-                  <small v-if="newUser.role === 'Admin'">*Администратору необходимо назначить хотя бы одну группу.</small>
+                  <div v-else-if="isSuperAdmin && availableGroups.length === 0">
+                       <p>Сначала <router-link :to="{name: 'AdminGroups'}">создайте группы</router-link>.</p>
+                  </div>
+                  <div v-else-if="!isSuperAdmin && adminAssignableGroups.length === 0">
+                       <p>Вы должны состоять хотя бы в одной группе, чтобы создавать пользователей.</p>
+                  </div>
+                  <small v-if="isSuperAdmin && newUser.role === 'Admin'">*Администратору необходимо назначить хотя бы одну группу.</small>
+                  <small v-if="!isSuperAdmin && adminAssignableGroups.length > 0">*Пользователь будет добавлен в выбранную вами группу.</small>
               </div>
            </div>
-         <button type="submit" :disabled="isLoading || (isSuperAdmin && newUser.role === 'Admin' && newUser.groups.length === 0)" class="create-button">
+         <button type="submit" :disabled="!canSubmitCreateUser" class="create-button">
            <span v-if="isLoading">Создание...</span>
            <span v-else>Создать</span>
          </button>
@@ -122,52 +134,85 @@ export default {
     return {
       // Форма создания
       newUser: { username: '', password: '', role: 'User', groups: [] },
+      selectedGroupForNewUser: '', // <-- Добавлено для выбора группы админом
       isLoading: false, // Для формы создания
       message: '', messageType: 'success', // Общее сообщение формы
-      availableGroups: [], // Для селекторов/чекбоксов
+      availableGroups: [], // Все группы (для SuperAdmin) или только свои (для Admin после фильтрации)
 
       // Список пользователей
       users: [],
       isUserListLoading: false, // Для списка
       userListError: '',
 
-      // Редактирование групп (модалка)
       showEditModal: false,
-      editingUser: null, // Пользователь для редактирования групп
-      editingUserGroups: [], // Выбранные группы в модалке
-      isUpdatingGroups: false, // Индикатор загрузки для групп
-      editGroupsError: '', // Ошибка в модалке групп
+      editingUser: null,
+      editingUserGroups: [],
+      isUpdatingGroups: false,
+      editGroupsError: '',
 
-      // Смена УЗ (пока через prompt)
-      editingUserForCreds: null, // Пользователь для смены логина/пароля
+      // Смена УЗ
+      editingUserForCreds: null,
       newUsername: '',
       newPassword: '',
-      isUpdatingCreds: false, // Индикатор загрузки для логина/пароля
-      credsError: '', // Ошибка смены логина/пароля (отображается под формой)
+      isUpdatingCreds: false,
+      credsError: '',
 
-      // Текущий пользователь (из localStorage)
       currentUserId: null,
       currentUserRole: null,
-      currentUserGroups: [],
+      currentUserGroups: [], // <-- Группы ТЕКУЩЕГО админа
     };
   },
   computed: {
     isSuperAdmin() { return this.currentUserRole === 'SuperAdmin'; },
     isAdmin() { return this.currentUserRole === 'Admin'; },
     canCreateUsers() { return this.isSuperAdmin || this.isAdmin; },
+
+    adminAssignableGroups() {
+    if (this.isSuperAdmin) {
+        return this.availableGroups;
+    }
+    const adminGroupsSet = new Set(this.currentUserGroups || []); // Группы ТЕКУЩЕГО админа (efe) -> ["GroupA"]
+    console.log("Filtering availableGroups:", this.availableGroups, "using adminGroupsSet:", adminGroupsSet); // <-- ЛОГ 1
+    const result = (this.availableGroups || []).filter(g => adminGroupsSet.has(g)); // <-- Фильтруем ВСЕ доступные группы по группам админа
+    console.log("Resulting adminAssignableGroups:", result); // <-- ЛОГ 2
+    return result;
+},
+
+    // Условие для блокировки кнопки Создать
+    canSubmitCreateUser() {
+        if (this.isLoading) return false;
+        if (!this.newUser.username || !this.newUser.password) return false;
+
+        if (this.isSuperAdmin) {
+             // Для суперадмина: если создает админа, должна быть выбрана хоть одна группа
+             if (this.newUser.role === 'Admin' && this.newUser.groups.length === 0) {
+                 return false;
+             }
+        } else { // Для обычного админа
+             if (!this.selectedGroupForNewUser) {
+                 return false;
+             }
+              if (this.adminAssignableGroups.length === 0) {
+                  return false;
+              }
+        }
+        return true; // Все проверки пройдены
+    }
   },
   methods: {
-    // --- Загрузка данных ---
     async fetchAvailableGroups() {
-        if (!this.isSuperAdmin) return;
         this.message = ''; this.messageType = 'success';
-        try {
-            const response = await axios.get('/api/auth/groups');
-            this.availableGroups = response.data || [];
+      try {
+          const response = await axios.get('/api/auth/groups');
+          this.availableGroups = response.data || [];
+          console.log("Fetched availableGroups:", this.availableGroups); // <-- ЛОГ 3
+          if (!this.isSuperAdmin && this.availableGroups.length === 0) {
+              console.log("Admin has no groups to assign (fetched list is empty).");
+          }
         } catch (err) {
-            //console.error('Error fetching groups:', err);
             this.message = 'Не удалось загрузить список групп для формы.';
             this.messageType = 'error';
+            this.availableGroups = []; // Очищаем при ошибке
         }
     },
     async fetchUsers() {
@@ -178,7 +223,6 @@ export default {
         const response = await axios.get('/api/auth/users');
         this.users = response.data || [];
       } catch (err) {
-        //console.error('Error fetching users:', err);
         this.userListError = 'Не удалось загрузить список пользователей.';
       } finally {
         this.isUserListLoading = false;
@@ -186,9 +230,10 @@ export default {
     },
 
     async createUser() {
-      if (!this.canCreateUsers || this.isLoading) return;
+      if (!this.canSubmitCreateUser) return; // Используем computed свойство
+
       this.isLoading = true;
-      this.message = ''; 
+      this.message = '';
       this.credsError = '';
 
       const payload = {
@@ -198,13 +243,11 @@ export default {
 
       if (this.isSuperAdmin) {
          payload.role = this.newUser.role;
-         payload.groups = this.newUser.groups;
-         if (payload.role === 'Admin' && (!payload.groups || payload.groups.length === 0)) {
-             this.message = 'Ошибка: Администратору необходимо назначить хотя бы одну группу.';
-             this.messageType = 'error';
-             this.isLoading = false;
-             return;
-         }
+         payload.groups = this.newUser.groups; // Массив строк
+      }
+      else { // Если создает Admin
+          payload.role = 'User'; // Админ создает только User
+          payload.groups = [this.selectedGroupForNewUser]; // Массив с одной строкой
       }
 
       try {
@@ -214,11 +257,11 @@ export default {
         // Очистка формы
         this.newUser.username = '';
         this.newUser.password = '';
-        this.newUser.role = 'User';
+        this.newUser.role = this.isSuperAdmin ? 'User' : 'User'; // Сброс роли
         this.newUser.groups = [];
-        await this.fetchUsers();
+        this.selectedGroupForNewUser = ''; // <-- Сброс селекта админа
+        await this.fetchUsers(); // Обновляем список пользователей
       } catch (err) {
-        //console.error('Error creating user:', err);
         this.messageType = 'error';
         this.message = `Ошибка создания: ${err.response?.data?.message || err.message}`;
       } finally {
@@ -227,14 +270,27 @@ export default {
     },
 
     canEditGroups(user) {
-        return this.isSuperAdmin && user.Role !== 'SuperAdmin';
+        if (!user) {
+             console.error("canEditGroups called with undefined user");
+             return false;
+        }
+        if (this.isSuperAdmin && user.Role !== 'SuperAdmin') return true; 
+        if (this.isAdmin && user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug))) {
+          return true;
+        }
+    return false;
     },
     openEditGroupsModal(user) {
-         if (!this.canEditGroups(user)) return;
-         this.editingUser = { ...user }; // Копируем
-         this.editingUserGroups = [...(user.Groups || [])]; // Копируем массив
+               if (!user) {
+            console.error("openEditGroupsModal called with undefined user");
+            return;
+         }
+         if (!this.canEditGroups(user)) return; // Проверка
+         this.editingUser = { ...user };
+         this.editingUserGroups = [...(user.Groups || [])];
          this.editGroupsError = '';
          this.showEditModal = true;
+         // Загружаем ВСЕ группы для модалки SuperAdmin'а, если их нет
          if (this.availableGroups.length === 0 && this.isSuperAdmin) {
              this.fetchAvailableGroups();
          }
@@ -245,8 +301,8 @@ export default {
          this.editingUserGroups = [];
          this.editGroupsError = '';
      },
-    async updateUserGroups() {
-         if (!this.editingUser || !this.isSuperAdmin || this.isUpdatingGroups) return;
+     async updateUserGroups() { // Вызывается только SuperAdmin'ом
+         if (!this.editingUser || this.isUpdatingGroups) return;
 
          if (this.editingUser.Role === 'Admin' && this.editingUserGroups.length === 0) {
              this.editGroupsError = "Администратор должен состоять хотя бы в одной группе!";
@@ -257,24 +313,23 @@ export default {
          try {
              await axios.put(`/api/auth/users/${this.editingUser.Id}/groups`, this.editingUserGroups);
              this.closeEditGroupsModal();
-             await this.fetchUsers();
+             await this.fetchUsers(); // Обновляем список пользователей
              this.message = `Группы для пользователя ${this.editingUser.Username} обновлены.`;
              this.messageType = 'success';
          } catch (err) {
-              //console.error('Error updating groups:', err);
               this.editGroupsError = `Ошибка обновления групп: ${err.response?.data?.message || err.message}`;
          } finally {
              this.isUpdatingGroups = false;
          }
      },
 
-    canEditCredentials(user) {
+     canEditCredentials(user) {
         if (!user || user.Id === this.currentUserId || user.Role === 'SuperAdmin') return false;
         if (this.isSuperAdmin) {
-            return user.Role === 'Admin' || user.Role === 'User';
+             return user.Role === 'Admin' || user.Role === 'User';
         }
         if (this.isAdmin) {
-            return user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug));
+             return user.Role === 'User' && user.Groups.some(ug => this.currentUserGroups.includes(ug));
         }
         return false;
     },
@@ -362,15 +417,17 @@ export default {
         this.currentUserRole = localStorage.getItem('userRole');
         try { this.currentUserGroups = JSON.parse(localStorage.getItem('userGroups') || '[]'); }
         catch { this.currentUserGroups = []; }
-         //console.log('Current User Loaded:', {id: this.currentUserId, role: this.currentUserRole, groups: this.currentUserGroups });
+         // Устанавливаем роль по умолчанию для нового пользователя
+         if (!this.isSuperAdmin) {
+             this.newUser.role = 'User';
+         }
     }
   },
   created() {
      this.loadCurrentUser();
      this.fetchUsers();
-     if (this.isSuperAdmin) { 
-       this.fetchAvailableGroups();
-     }
+     // Загружаем доступные группы (бэкенд отфильтрует для Admin)
+     this.fetchAvailableGroups();
   }
 };
 </script>
@@ -392,12 +449,14 @@ h2 { margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #
 .create-user-form input, .create-user-form select { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 0.95rem; }
 .create-user-form input:focus, .create-user-form select:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2); }
 .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 5px; padding: 10px; border: 1px solid #eee; border-radius: 4px; background-color: #f9f9f9; }
+.checkbox-group label { margin-right: 15px; }
 .checkbox-label { display: inline-flex; align-items: center; cursor: pointer; margin: 0;}
 .checkbox-label input { margin-right: 5px; cursor: pointer; }
 .create-user-form small { display: block; margin-top: 5px; font-size: 0.85em; color: #6c757d; }
 .create-button { padding: 12px 25px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s ease; margin-top: 10px; }
 .create-button:hover:not(:disabled) { background-color: #218838; }
 .create-button:disabled { background-color: #cccccc; cursor: not-allowed; }
+.create-user-form select[disabled] { background-color: #e9ecef; cursor: not-allowed; } 
 
 /* Сообщения и ошибки */
 .message { padding: 12px 15px; margin-top: 20px; border-radius: 4px; border: 1px solid transparent; font-size: 0.95rem; }

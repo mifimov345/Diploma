@@ -4,6 +4,7 @@ import UserDashboard from '../views/UserDashboard.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
 import MyFilesView from '../views/MyFilesView.vue';
 import FileUpload from '../components/files/FileUpload.vue';
+import GroupFiles from '../views/GroupFiles.vue'; // Убедись, что путь верный
 import AdminFileBrowser from '../components/admin/AdminFileBrowser.vue';
 import AdminUserManagement from '../components/admin/AdminUserManagement.vue';
 import AdminGroupManagement from '../components/admin/AdminGroupManagement.vue';
@@ -20,24 +21,25 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginView,
-    meta: { requiresGuest: true }
+    meta: { requiresGuest: true } // Страница для неавторизованных
   },
   {
+    // Маршрут для User Dashboard
     path: '/',
     component: UserDashboard,
-    meta: { requiresAuth: true, roles: [ROLES.USER, ROLES.ADMIN, ROLES.SUPER_ADMIN] },
     children: [
-      { path: '', redirect: '/my-files' },
+      { path: '', name: 'UserHomeRedirect', redirect: { name: 'MyFiles' } },
       { path: 'my-files', name: 'MyFiles', component: MyFilesView },
+      { path: 'group-files', name: 'GroupFiles', component: GroupFiles },
       { path: 'upload', name: 'UploadFile', component: FileUpload },
     ]
   },
   {
     path: '/admin',
     component: AdminDashboard,
-    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] },
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.SUPER_ADMIN] }, 
     children: [
-      { path: '', redirect: '/admin/files' },
+      { path: '', name: 'AdminHomeRedirect', redirect: { name: 'AdminFiles' } }, 
       {
         path: 'files',
         name: 'AdminFiles',
@@ -51,13 +53,13 @@ const routes = [
       {
         path: 'groups',
         name: 'AdminGroups',
-        component: AdminGroupManagement,
-        meta: { requiresAuth: true, roles: [ROLES.SUPER_ADMIN] }
+        component: AdminGroupManagement
       },
-      { path: 'my-files-admin', name: 'AdminMyFiles', component: MyFilesView },
-      { path: 'upload-admin', name: 'AdminUploadFile', component: FileUpload },
+      { path: 'my-files', name: 'AdminMyFiles', component: MyFilesView }, 
+      { path: 'upload', name: 'AdminUploadFile', component: FileUpload }, 
     ]
   },
+  // 404 страница - должна быть последней
   { path: '/:catchAll(.*)', name: 'NotFound', component: NotFoundView }
 ];
 
@@ -67,56 +69,57 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  // Добавляем подробные логи
-  //console.log(`>>> ROUTER GUARD: Navigating from '${from.fullPath}' to '${to.fullPath}'`);
-
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-  const requiresGuest = to.matched.some(record => record.meta.requiresGuest);
-  const allowedRoles = to.meta.roles;
-
   const isAuthenticated = !!localStorage.getItem('jwtToken');
   const userRole = localStorage.getItem('userRole');
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  const requiresGuest = to.matched.some(record => record.meta.requiresGuest);
+  const allowedRoles = to.matched.reduce((acc, record) => {
+      if (record.meta.roles) return acc.concat(record.meta.roles);
+      return acc;
+  }, []);
 
-  //console.log(`>>> ROUTER GUARD: Evaluating route: requiresAuth=${requiresAuth}, requiresGuest=${requiresGuest}`);
-  //console.log(`>>> ROUTER GUARD: Current state: isAuthenticated=${isAuthenticated}, userRole='${userRole}'`);
-  //console.log(`>>> ROUTER GUARD: Route allowedRoles=${allowedRoles ? allowedRoles.join(',') : 'ANY'}`);
+  if (requiresGuest && isAuthenticated) {
+    console.log("GUARD: Authenticated user on guest page. Redirecting to dashboard.");
+    if (userRole === ROLES.ADMIN || userRole === ROLES.SUPER_ADMIN) {
+      next({ path: '/admin' }); 
+    } else {
+      next({ path: '/' });      
+    }
+    return; 
+  }
 
+  // 2. Если маршрут требует авторизации
   if (requiresAuth) {
-    //console.log('>>> ROUTER GUARD: Path requires authentication.');
     if (!isAuthenticated) {
-      //console.warn(`>>> ROUTER GUARD: Decision -> NOT Authenticated. Redirecting to Login.`);
+      console.log("GUARD: Unauthenticated user on protected page. Redirecting to Login.");
       next({ name: 'Login', query: { redirect: to.fullPath } });
     } else {
-      //console.log(`>>> ROUTER GUARD: User is Authenticated. Checking role...`);
-      if (allowedRoles && !allowedRoles.includes(userRole)) {
-        //console.warn(`>>> ROUTER GUARD: Decision -> Access DENIED (Role '${userRole}' not in [${allowedRoles.join(', ')}]). Redirecting.`);
-        if (userRole === ROLES.SUPER_ADMIN || userRole === ROLES.ADMIN) {
-          next({ name: 'AdminFiles' });
-        } else {
-          next({ name: 'MyFiles' });
-        }
+      if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+        console.warn(`GUARD: Role mismatch. User ('${userRole}') cannot access route requiring [${allowedRoles.join(', ')}]. Redirecting.`);
+         if (userRole === ROLES.ADMIN || userRole === ROLES.SUPER_ADMIN) {
+            if (!to.path.startsWith('/admin')) {
+                 next({ path: '/admin' });
+            } else {
+                 next({ name: 'AdminFiles' });
+            }
+         } else { 
+             if (to.path !== '/') {
+                 next({ path: '/' });
+             } else {
+                 console.error("GUARD: User with role 'User' denied access to '/'. Check route meta.");
+                 next({ name: 'Login' }); // На всякий случай
+             }
+         }
       } else {
-        //console.log('>>> ROUTER GUARD: Decision -> Access GRANTED. Calling next().');
+        console.log("GUARD: Access granted to protected route.");
         next();
       }
     }
-  } else if (requiresGuest) {
-    //console.log('>>> ROUTER GUARD: Path requires guest.');
-    if (isAuthenticated) {
-      //console.warn(`>>> ROUTER GUARD: Decision -> Authenticated user on guest page. Redirecting.`);
-      if (userRole === ROLES.SUPER_ADMIN || userRole === ROLES.ADMIN) {
-        next({ name: 'AdminFiles' });
-      } else {
-        next({ name: 'MyFiles' });
-      }
-    } else {
-      //console.log('>>> ROUTER GUARD: Decision -> Access GRANTED to guest page. Calling next().');
-      next();
-    }
-  } else {
-     //console.log('>>> ROUTER GUARD: Path is public. Calling next().');
-    next();
+    return; 
   }
+
+  console.log("GUARD: Accessing public or guest route (user unauthenticated).");
+  next();
 });
 
 export default router;

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "DbKtNtweM19eq34cc8LzI8brHcSDCjyt8w+OQXRWR5zKVJwK7nBRXLwQgmhroh8jLUOUI5if9DupqftEIJdIow==",
+  "dgSpecHash": "LrgQRy95XHCxZIjrxQLxlKsJuIm2XQk2xFU+HD7SdTGb3QsQHa7Xn/HXPf5LvYg0Sxpyryir6naSRHblnCld6w==",
   "success": true,
   "projectFilePath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\BackendGateway\\BackendGateway.Tests\\BackendGateway.Tests.csproj",
   "expectedPackageFiles": [
@@ -47,6 +47,7 @@
     "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\6.4.0\\swashbuckle.aspnetcore.swaggergen.6.4.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\6.4.0\\swashbuckle.aspnetcore.swaggerui.6.4.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\system.diagnostics.eventlog\\8.0.1\\system.diagnostics.eventlog.8.0.1.nupkg.sha512",
+    "C:\\Users\\mifim\\.nuget\\packages\\system.io.hashing\\8.0.0\\system.io.hashing.8.0.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\system.io.pipelines\\8.0.0\\system.io.pipelines.8.0.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\system.reflection.metadata\\1.6.0\\system.reflection.metadata.1.6.0.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\xunit\\2.9.3\\xunit.2.9.3.nupkg.sha512",
@@ -56,7 +57,8 @@
     "C:\\Users\\mifim\\.nuget\\packages\\xunit.core\\2.9.3\\xunit.core.2.9.3.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\xunit.extensibility.core\\2.9.3\\xunit.extensibility.core.2.9.3.nupkg.sha512",
     "C:\\Users\\mifim\\.nuget\\packages\\xunit.extensibility.execution\\2.9.3\\xunit.extensibility.execution.2.9.3.nupkg.sha512",
-    "C:\\Users\\mifim\\.nuget\\packages\\xunit.runner.visualstudio\\3.0.2\\xunit.runner.visualstudio.3.0.2.nupkg.sha512"
+    "C:\\Users\\mifim\\.nuget\\packages\\xunit.runner.visualstudio\\3.0.2\\xunit.runner.visualstudio.3.0.2.nupkg.sha512",
+    "C:\\Users\\mifim\\.nuget\\packages\\yarp.reverseproxy\\2.3.0\\yarp.reverseproxy.2.3.0.nupkg.sha512"
   ],
   "logs": []
 }

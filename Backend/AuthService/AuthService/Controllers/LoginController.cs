@@ -33,15 +33,31 @@ namespace AuthService.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public IActionResult Login([FromBody] LoginModel model)
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
+            _logger.LogInformation(">>> Login endpoint reached. Method: {Method}", Request.Method);
+            
+
+            if (model == null)
+            {
+                _logger.LogWarning("Login attempt model is NULL.");
+                return BadRequest("Invalid request body or model binding failed.");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
+            {
+                _logger.LogWarning("Login attempt with missing username or password. Received Username: '{Username}', Password Provided: {PasswordProvided}", model.Username, !string.IsNullOrWhiteSpace(model.Password));
+                return BadRequest("Username and password are required.");
+            }
+            _logger.LogInformation(">>> Login endpoint reached. Method: {Method}", Request.Method); // Проверяем вход
+
             if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
             {
                 //_logger.LogWarning("Login attempt with missing username or password.");
                 return BadRequest("Username and password are required.");
             }
 
-            //_logger.LogInformation("Login attempt for user: {Username}", model.Username);
+            _logger.LogInformation("Login attempt for user: {Username}", model.Username);
             var user = _userService.Authenticate(model.Username, model.Password);
 
             if (user == null)
@@ -63,7 +79,7 @@ namespace AuthService.Controllers
                 };
 
                 //_logger.LogInformation("Login successful for user: {Username}, Role: {Role}", responseData.Username, responseData.Role);
-                return Ok(responseData); // 200 OK
+                return Ok(responseData);
             }
             catch (Exception ex)
             {
@@ -93,12 +109,18 @@ namespace AuthService.Controllers
                 new Claim(ClaimTypes.Role, user.Role),
             };
 
-            if (user.Groups != null)
+            if (user.Groups != null) // Эта проверка проходит для superadmin
             {
-                foreach (var group in user.Groups.Where(g => !string.IsNullOrWhiteSpace(g))) // Добавляем только непустые группы
+                Console.WriteLine($"--- GenerateJwtToken: Found {user.Groups.Count} group(s) for user '{user.Username}': [{string.Join(",", user.Groups)}]");
+                foreach (var group in user.Groups.Where(g => !string.IsNullOrWhiteSpace(g)))
                 {
-                    claims.Add(new Claim("group", group));
+                    Console.WriteLine($"--- GenerateJwtToken: Adding claim 'group' with value '{group}'");
+                    claims.Add(new Claim("group", group)); // Имя клейма "group"
                 }
+            }
+            else
+            {
+                Console.WriteLine($"--- GenerateJwtToken: No groups found for user '{user.Username}' (user.Groups is null or empty).");
             }
 
             var tokenDescriptor = new SecurityTokenDescriptor

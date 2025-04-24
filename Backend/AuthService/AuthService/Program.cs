@@ -27,6 +27,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     Console.WriteLine("--- Kestrel Limits Configured (AuthService) ---");
 });
 
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 builder.Services.AddControllers(options => {
 })
@@ -159,7 +160,7 @@ app.UseRouting();
 
 app.UseCors("AllowFrontend");
 
-app.UseAuthentication();
+//app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

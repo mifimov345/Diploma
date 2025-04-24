@@ -13,7 +13,7 @@
     <nav class="dashboard-nav admin-nav">
       <router-link :to="{ name: 'AdminFiles' }" class="nav-link">Обзор файлов</router-link>
       <router-link :to="{ name: 'AdminUsers' }" class="nav-link">Пользователи</router-link>
-      <router-link v-if="isSuperAdmin" :to="{ name: 'AdminGroups' }" class="nav-link">Группы</router-link>
+      <router-link v-if="isAdminOrSuperAdmin" :to="{ name: 'AdminGroups' }" class="nav-link">Группы</router-link>
       <span class="nav-separator">|</span>
       <router-link :to="{ name: 'AdminMyFiles' }" class="nav-link">Мои файлы</router-link>
       <router-link :to="{ name: 'AdminUploadFile' }" class="nav-link">Загрузить</router-link>
@@ -35,7 +35,8 @@ export default {
   computed: {
     username() { return localStorage.getItem('username') || 'Admin'; },
     userRole() { return localStorage.getItem('userRole'); },
-    isSuperAdmin() { return this.userRole === 'SuperAdmin'; }
+    isSuperAdmin() { return this.userRole === 'SuperAdmin'; },
+    isAdminOrSuperAdmin() { return this.userRole === 'Admin' || this.userRole === 'SuperAdmin'; }
   },
   methods: {
     logout() {

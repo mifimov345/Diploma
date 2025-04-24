@@ -8,6 +8,7 @@
         <span class="file-meta">
           <span title="Размер файла">{{ formatBytes(file.SizeBytes) }}</span> |
           <span title="Дата загрузки">{{ formatDate(file.UploadedAt) }}</span>
+          <slot name="meta"></slot>
           <template v-if="showOwnerInfo && file.UserId">
              | <span title="ID Пользователя">👤 {{ file.UserId }}</span>
              | <span title="Группа пользователя">📁 {{ file.UserGroup || 'N/A' }}</span>
@@ -34,6 +35,7 @@
            <span v-if="isActionInProgress && actionType === 'delete'">...</span>
            <span v-else>🗑️</span>
         </button>
+        <slot name="actions"></slot>
       </div>
     </li>
   </template>

@@ -53,7 +53,6 @@ namespace SearchService.Services
                  // TXT / CSV / другие текстовые
                  lowerContentType.StartsWith("text/") || extension == ".txt" || extension == ".csv";
             // Поддержка .doc убрана из-за проблем совместимости NPOI.HWPF
-            // lowerContentType == "application/msword" || extension == ".doc" ||
         }
 
         public async Task<string?> ExtractTextAsync(Stream fileStream, string? contentType, string? fileName)

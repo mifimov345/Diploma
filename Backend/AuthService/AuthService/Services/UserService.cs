@@ -4,6 +4,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace AuthService.Services
 {
@@ -21,7 +22,7 @@ namespace AuthService.Services
         IEnumerable<User> GetAll();
         IEnumerable<User> GetUsersInGroups(List<string> groupNames);
         User CreateAdmin(User user, string password, List<string> initialGroups, int creatorId);
-        User CreateUserByAdmin(User user, string password, int adminCreatorId);
+        User CreateUserByAdmin(User user, string password, int adminCreatorId, string targetGroup);
         User CreateUserBySuperAdmin(User user, string password, List<string> initialGroups);
         User GetByUsername(string username);
         void UpdateUserGroups(int userId, List<string> groupNames);
@@ -30,7 +31,9 @@ namespace AuthService.Services
         void UpdatePassword(int userIdToUpdate, string newPassword, int currentUserId, string currentUserRole);
 
         IEnumerable<string> GetAllGroupNames();
+        IEnumerable<string> GetGroupsForAdmin(int adminId);
         bool CreateGroup(string groupName);
+        bool CreateGroup(string groupName, int creatorId, string creatorRole);
         void DeleteGroup(string groupName);
     }
 
@@ -40,66 +43,90 @@ namespace AuthService.Services
         private readonly List<string> _groups = new List<string>();
         private int _nextId = 1;
 
-        public UserService()
+        public UserService()//ILogger<UserService> logger)
         {
-            var superAdmin = new User
-            {
-                Id = _nextId++,
-                Username = "superadmin",
-                Role = Roles.SuperAdmin,
-                PasswordHash = HashPassword("superpassword"),
-                Groups = new List<string> { "System" }
-            };
-            _users.Add(superAdmin);
-            _groups.Add("System");
+            // _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            Console.WriteLine("--- Initializing UserService (No Logger) ---"); // Используем Console для отладки
 
-            var admin1 = new User
+            try
             {
-                Id = _nextId++,
-                Username = "admin1",
-                Role = Roles.Admin,
-                PasswordHash = HashPassword("adminpass"),
-                Groups = new List<string> { "GroupA" },
-                CreatedByAdminId = superAdmin.Id
-            };
-            _users.Add(admin1);
-            _groups.Add("GroupA");
+                var superAdminPasswordHash = HashPassword("superpassword");
+                // Console.WriteLine("--- Hashed superadmin password successfully: {Hash}", superAdminPasswordHash);
 
-            var user1 = new User
+                var superAdmin = new User
+                {
+                    Id = _nextId++,
+                    Username = "superadmin",
+                    Role = Roles.SuperAdmin,
+                    PasswordHash = superAdminPasswordHash,
+                    Groups = new List<string> { "System" }
+                };
+                Console.WriteLine("--- Adding superadmin (ID: {0}, User: {1}) to list...", superAdmin.Id, superAdmin.Username);
+                _users.Add(superAdmin);
+                Console.WriteLine("--- Superadmin added. Current count: {0}", _users.Count);
+
+                var admin1PasswordHash = HashPassword("adminpass");
+                // Console.WriteLine("--- Hashed admin1 password successfully: {Hash}", admin1PasswordHash);
+                var admin1 = new User
+                {
+                    Id = _nextId++,
+                    Username = "admin1",
+                    Role = Roles.Admin,
+                    PasswordHash = admin1PasswordHash,
+                    Groups = new List<string> { "GroupA" },
+                    CreatedByAdminId = 1 // Исправлено на 1, т.к. superAdmin.Id недоступен до добавления
+                };
+                Console.WriteLine("--- Adding admin1 (ID: {0}, User: {1}) to list...", admin1.Id, admin1.Username);
+                _users.Add(admin1);
+                Console.WriteLine("--- Admin1 added. Current count: {0}", _users.Count);
+
+
+                var user1PasswordHash = HashPassword("userpass");
+                // Console.WriteLine("--- Hashed user1 password successfully: {Hash}", user1PasswordHash);
+                var user1 = new User
+                {
+                    Id = _nextId++,
+                    Username = "user1",
+                    Role = Roles.User,
+                    PasswordHash = user1PasswordHash,
+                    Groups = new List<string> { "GroupA" },
+                    CreatedByAdminId = 2 // Исправлено на 2, т.к. admin1.Id недоступен до добавления
+                };
+                Console.WriteLine("--- Adding user1 (ID: {0}, User: {1}) to list...", user1.Id, user1.Username);
+                _users.Add(user1);
+                Console.WriteLine("--- User1 added. Current count: {0}", _users.Count);
+
+                // Добавляем группы
+                _groups.Add("System");
+                _groups.Add("GroupA");
+                _groups.Add("GroupB");
+                Console.WriteLine("--- Groups added. Groups count: {0}", _groups.Count);
+            }
+            catch (Exception ex)
             {
-                Id = _nextId++,
-                Username = "user1",
-                Role = Roles.User,
-                PasswordHash = HashPassword("userpass"),
-                Groups = new List<string> { "GroupA" },
-                CreatedByAdminId = admin1.Id
-            };
-            _users.Add(user1);
+                Console.WriteLine($"!!! EXCEPTION during UserService initialization: {ex.Message} !!!");
+                throw;
+            }
 
-            _groups.Add("GroupB");
+            Console.WriteLine("UserService initialized successfully (No Logger). Final users count: {0}", _users.Count);
         }
         public User Authenticate(string username, string password)
         {
-            //Console.WriteLine($"--- UserService Authenticate: Attempting login for username='{username}'");
+            Console.WriteLine($"--- UserService Authenticate (No Logger): Attempting login for username='{username}'");
+
+            if (_users != null) { Console.WriteLine($"--- Current users in list ({_users.Count}): {string.Join(", ", _users.Select(u => u.Username))}"); }
+            else { Console.WriteLine("--- _users list is NULL!"); return null; }
+
             var user = _users.SingleOrDefault(x => x.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
 
-            if (user == null)
-            {
-                //Console.WriteLine($"--- UserService Authenticate: User '{username}' not found.");
-                return null;
-            }
+            if (user == null) { Console.WriteLine($"Authentication failed (No Logger): User '{username}' not found in the list."); return null; }
 
-            //Console.WriteLine($"--- UserService Authenticate: User '{username}' found. ID={user.Id}, Role={user.Role}. Verifying password...");
-
+            Console.WriteLine($"--- User '{username}' FOUND (No Logger). Verifying password...");
             bool passwordValid = VerifyPasswordHash(password, user.PasswordHash);
 
-            if (!passwordValid)
-            {
-                //Console.WriteLine($"--- UserService Authenticate: Password verification FAILED for user '{username}'.");
-                return null;
-            }
+            if (!passwordValid) { Console.WriteLine($"Authentication failed (No Logger): Invalid password for user '{username}'."); return null; }
 
-            //Console.WriteLine($"--- UserService Authenticate: Password verification SUCCESSFUL for user '{username}'.");
+            Console.WriteLine($"Authentication successful (No Logger) for user '{username}'.");
             return user;
         }
 
@@ -123,24 +150,26 @@ namespace AuthService.Services
             return user;
         }
 
-        public User CreateUserByAdmin(User user, string password, int adminCreatorId)
+        public User CreateUserByAdmin(User user, string password, int adminCreatorId, string targetGroup) // Принимаем targetGroup
         {
             ValidateUserCreation(user, password);
 
             var admin = GetById(adminCreatorId);
             if (admin == null || admin.Role != Roles.Admin)
-                throw new Exception("Invalid admin creator specified.");
-
-            if (admin.Groups == null || !admin.Groups.Any())
+                throw new InvalidOperationException("Invalid admin creator specified.");
+            if (admin.Groups == null || !admin.Groups.Contains(targetGroup))
+            {
+                _logger?.LogWarning("Admin ID {AdminId} attempted to assign user to group '{TargetGroup}' which they are not a member of.", adminCreatorId, targetGroup);
                 throw new Exception($"Admin '{admin.Username}' has no groups assigned and cannot create users.");
-
+            }
             user.Id = _nextId++;
             user.Role = Roles.User;
             user.PasswordHash = HashPassword(password);
-            user.Groups = new List<string>(admin.Groups);
+            user.Groups = new List<string> { targetGroup };
             user.CreatedByAdminId = adminCreatorId;
 
             _users.Add(user);
+            _logger?.LogInformation("User '{Username}' (ID: {UserId}) created by Admin ID {AdminId} and assigned to group '{TargetGroup}'.", user.Username, user.Id, adminCreatorId, targetGroup);
             return user;
         }
 
@@ -162,7 +191,43 @@ namespace AuthService.Services
         public User GetById(int id) => _users.FirstOrDefault(x => x.Id == id);
         public User GetByUsername(string username) => _users.FirstOrDefault(x => x.Username == username);
         public IEnumerable<User> GetAll() => _users.ToList();
+        public IEnumerable<string> GetAllGroupNames() => _groups.ToList();
+        public IEnumerable<string> GetGroupsForAdmin(int adminId)
+        {
+            var admin = GetById(adminId);
+            if (admin?.Role == Roles.Admin)
+            {
+                return admin.Groups?.ToList() ?? Enumerable.Empty<string>();
+            }
+            return Enumerable.Empty<string>();
+        }
 
+        public bool CreateGroup(string groupName, int creatorId, string creatorRole)
+        {
+            if (string.IsNullOrWhiteSpace(groupName))
+                throw new ArgumentException("Group name cannot be empty.", nameof(groupName));
+            if (_groups.Contains(groupName, StringComparer.OrdinalIgnoreCase))
+                return false;
+            _groups.Add(groupName);
+            if (creatorRole == Roles.Admin)
+            {
+                var adminUser = GetById(creatorId);
+                if (adminUser != null)
+                {
+                    if (adminUser.Groups == null) adminUser.Groups = new List<string>();
+                    if (!adminUser.Groups.Contains(groupName))
+                    {
+                        adminUser.Groups.Add(groupName);
+                        //_logger.LogInformation("Admin User ID {AdminId} automatically added to newly created group '{GroupName}'.", creatorId, groupName);
+                    }
+                }
+                else
+                {
+                    //_logger.LogWarning("Could not find Admin User ID {AdminId} to add to new group '{GroupName}'.", creatorId, groupName);
+                }
+            }
+            return true;
+        }
         public IEnumerable<User> GetUsersInGroups(List<string> groupNames)
         {
             if (groupNames == null || !groupNames.Any())
@@ -220,9 +285,6 @@ namespace AuthService.Services
                 throw new UnauthorizedAccessException("Insufficient permissions to delete user.");
             }
         }
-
-
-        public IEnumerable<string> GetAllGroupNames() => _groups.ToList();
 
         public bool CreateGroup(string groupName)
         {
@@ -313,6 +375,7 @@ namespace AuthService.Services
             userToUpdate.PasswordHash = HashPassword(newPassword);
             //Console.WriteLine($"--- UserService: Updated password for User ID {userIdToUpdate} by User ID {currentUserId}");
         }
+        private readonly ILogger<UserService> _logger;
 
         private void CheckUpdatePermissions(User userToModify, int currentUserId, string currentUserRole, string action)
         {
