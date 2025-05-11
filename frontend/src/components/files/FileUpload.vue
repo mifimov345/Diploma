@@ -242,13 +242,13 @@ const processQueue = async () => {
                  }
             }
         });
-        console.log(`Upload Success for ${currentItem.file.name}. Response Status: ${response.status}`);
+        //console.log(`Upload Success for ${currentItem.file.name}. Response Status: ${response.status}`);
          if (currentItem.status === 'uploading') {
-            console.log(`[BEFORE SUCCESS] Item ${currentItem.file.name}: status=${currentItem.status}, errorMsg='${currentItem.errorMsg}'`);
+            //console.log(`[BEFORE SUCCESS] Item ${currentItem.file.name}: status=${currentItem.status}, errorMsg='${currentItem.errorMsg}'`);
              currentItem.status = 'success';
              currentItem.progress = 100;
              //console.log(`File ${currentItem.file.name} uploaded successfully:`, response.data);
-            console.log(`[AFTER SUCCESS] Item ${currentItem.file.name}: status=${currentItem.status}, errorMsg='${currentItem.errorMsg}'`);
+            //console.log(`[AFTER SUCCESS] Item ${currentItem.file.name}: status=${currentItem.status}, errorMsg='${currentItem.errorMsg}'`);
 
          }
 
@@ -257,9 +257,9 @@ const processQueue = async () => {
             currentItem.status = 'cancelled';
         } else {
             //console.error(`Error uploading file ${currentItem.file.name}:`, err);
-            console.error(`Error uploading file ${currentItem.file.name}:`, err.toJSON ? err.toJSON() : err);
+            //console.error(`Error uploading file ${currentItem.file.name}:`, err.toJSON ? err.toJSON() : err);
             if (currentItem.status !== 'cancelled') {
-                console.log(`[BEFORE ERROR] Item ${currentItem.file.name}: status=${currentItem.status}, errorMsg='${currentItem.errorMsg}'`);
+                //console.log(`[BEFORE ERROR] Item ${currentItem.file.name}: status=${currentItem.status}, errorMsg='${currentItem.errorMsg}'`);
                 if (currentItem.status === 'uploading') {
                     currentItem.status = 'error';
                  }
