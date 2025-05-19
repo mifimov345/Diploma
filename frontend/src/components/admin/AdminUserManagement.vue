@@ -132,16 +132,14 @@ export default {
   name: 'AdminUserManagement',
   data() {
     return {
-      // Форма создания
       newUser: { username: '', password: '', role: 'User', groups: [] },
-      selectedGroupForNewUser: '', // <-- Добавлено для выбора группы админом
-      isLoading: false, // Для формы создания
-      message: '', messageType: 'success', // Общее сообщение формы
-      availableGroups: [], // Все группы (для SuperAdmin) или только свои (для Admin после фильтрации)
+      selectedGroupForNewUser: '',
+      isLoading: false,
+      message: '', messageType: 'success',
+      availableGroups: [],
 
-      // Список пользователей
       users: [],
-      isUserListLoading: false, // Для списка
+      isUserListLoading: false,
       userListError: '',
 
       showEditModal: false,
@@ -159,7 +157,7 @@ export default {
 
       currentUserId: null,
       currentUserRole: null,
-      currentUserGroups: [], // <-- Группы ТЕКУЩЕГО админа
+      currentUserGroups: [],
     };
   },
   computed: {
@@ -171,24 +169,22 @@ export default {
     if (this.isSuperAdmin) {
         return this.availableGroups;
     }
-    const adminGroupsSet = new Set(this.currentUserGroups || []); // Группы ТЕКУЩЕГО админа (efe) -> ["GroupA"]
-    console.log("Filtering availableGroups:", this.availableGroups, "using adminGroupsSet:", adminGroupsSet); // <-- ЛОГ 1
-    const result = (this.availableGroups || []).filter(g => adminGroupsSet.has(g)); // <-- Фильтруем ВСЕ доступные группы по группам админа
-    console.log("Resulting adminAssignableGroups:", result); // <-- ЛОГ 2
+    const adminGroupsSet = new Set(this.currentUserGroups || []);
+    console.log("Filtering availableGroups:", this.availableGroups, "using adminGroupsSet:", adminGroupsSet);
+    const result = (this.availableGroups || []).filter(g => adminGroupsSet.has(g));
+    console.log("Resulting adminAssignableGroups:", result);
     return result;
 },
 
-    // Условие для блокировки кнопки Создать
     canSubmitCreateUser() {
         if (this.isLoading) return false;
         if (!this.newUser.username || !this.newUser.password) return false;
 
         if (this.isSuperAdmin) {
-             // Для суперадмина: если создает админа, должна быть выбрана хоть одна группа
              if (this.newUser.role === 'Admin' && this.newUser.groups.length === 0) {
                  return false;
              }
-        } else { // Для обычного админа
+        } else {
              if (!this.selectedGroupForNewUser) {
                  return false;
              }
@@ -196,7 +192,7 @@ export default {
                   return false;
               }
         }
-        return true; // Все проверки пройдены
+        return true;
     }
   },
   methods: {
@@ -205,14 +201,14 @@ export default {
       try {
           const response = await axios.get('/api/auth/groups');
           this.availableGroups = response.data || [];
-          console.log("Fetched availableGroups:", this.availableGroups); // <-- ЛОГ 3
+          console.log("Fetched availableGroups:", this.availableGroups);
           if (!this.isSuperAdmin && this.availableGroups.length === 0) {
               console.log("Admin has no groups to assign (fetched list is empty).");
           }
         } catch (err) {
             this.message = 'Не удалось загрузить список групп для формы.';
             this.messageType = 'error';
-            this.availableGroups = []; // Очищаем при ошибке
+            this.availableGroups = [];
         }
     },
     async fetchUsers() {
@@ -230,7 +226,7 @@ export default {
     },
 
     async createUser() {
-      if (!this.canSubmitCreateUser) return; // Используем computed свойство
+      if (!this.canSubmitCreateUser) return;
 
       this.isLoading = true;
       this.message = '';
@@ -243,24 +239,23 @@ export default {
 
       if (this.isSuperAdmin) {
          payload.role = this.newUser.role;
-         payload.groups = this.newUser.groups; // Массив строк
+         payload.groups = this.newUser.groups;
       }
-      else { // Если создает Admin
-          payload.role = 'User'; // Админ создает только User
-          payload.groups = [this.selectedGroupForNewUser]; // Массив с одной строкой
+      else {
+          payload.role = 'User';
+          payload.groups = [this.selectedGroupForNewUser];
       }
 
       try {
         const response = await axios.post('/api/auth/users', payload);
         this.message = `Пользователь "${response.data.Username}" (${response.data.Role}) успешно создан.`;
         this.messageType = 'success';
-        // Очистка формы
         this.newUser.username = '';
         this.newUser.password = '';
-        this.newUser.role = this.isSuperAdmin ? 'User' : 'User'; // Сброс роли
+        this.newUser.role = this.isSuperAdmin ? 'User' : 'User';
         this.newUser.groups = [];
-        this.selectedGroupForNewUser = ''; // <-- Сброс селекта админа
-        await this.fetchUsers(); // Обновляем список пользователей
+        this.selectedGroupForNewUser = '';
+        await this.fetchUsers();
       } catch (err) {
         this.messageType = 'error';
         this.message = `Ошибка создания: ${err.response?.data?.message || err.message}`;
@@ -285,12 +280,11 @@ export default {
             console.error("openEditGroupsModal called with undefined user");
             return;
          }
-         if (!this.canEditGroups(user)) return; // Проверка
+         if (!this.canEditGroups(user)) return;
          this.editingUser = { ...user };
          this.editingUserGroups = [...(user.Groups || [])];
          this.editGroupsError = '';
          this.showEditModal = true;
-         // Загружаем ВСЕ группы для модалки SuperAdmin'а, если их нет
          if (this.availableGroups.length === 0 && this.isSuperAdmin) {
              this.fetchAvailableGroups();
          }
@@ -301,7 +295,7 @@ export default {
          this.editingUserGroups = [];
          this.editGroupsError = '';
      },
-     async updateUserGroups() { // Вызывается только SuperAdmin'ом
+     async updateUserGroups() {
          if (!this.editingUser || this.isUpdatingGroups) return;
 
          if (this.editingUser.Role === 'Admin' && this.editingUserGroups.length === 0) {
@@ -313,7 +307,7 @@ export default {
          try {
              await axios.put(`/api/auth/users/${this.editingUser.Id}/groups`, this.editingUserGroups);
              this.closeEditGroupsModal();
-             await this.fetchUsers(); // Обновляем список пользователей
+             await this.fetchUsers();
              this.message = `Группы для пользователя ${this.editingUser.Username} обновлены.`;
              this.messageType = 'success';
          } catch (err) {
@@ -417,7 +411,6 @@ export default {
         this.currentUserRole = localStorage.getItem('userRole');
         try { this.currentUserGroups = JSON.parse(localStorage.getItem('userGroups') || '[]'); }
         catch { this.currentUserGroups = []; }
-         // Устанавливаем роль по умолчанию для нового пользователя
          if (!this.isSuperAdmin) {
              this.newUser.role = 'User';
          }
@@ -426,7 +419,6 @@ export default {
   created() {
      this.loadCurrentUser();
      this.fetchUsers();
-     // Загружаем доступные группы (бэкенд отфильтрует для Admin)
      this.fetchAvailableGroups();
   }
 };
@@ -436,12 +428,10 @@ export default {
 .admin-user-management { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
 h2 { margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
 
-/* Секции */
 .create-user-section { margin-bottom: 30px; padding: 25px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fdfdfd; }
 .user-list-section { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;}
 .create-user-section h3, .user-list-section h3 { margin-top: 0; margin-bottom: 20px; color: #444; }
 
-/* Форма создания */
 .create-user-form .form-row { display: flex; gap: 20px; margin-bottom: 15px; flex-wrap: wrap; }
 .create-user-form .form-group { flex: 1; min-width: 200px; margin-bottom: 5px; }
 .create-user-form .form-group.full-width { flex-basis: 100%; min-width: auto;}
@@ -458,14 +448,12 @@ h2 { margin-top: 0; margin-bottom: 25px; color: #333; border-bottom: 1px solid #
 .create-button:disabled { background-color: #cccccc; cursor: not-allowed; }
 .create-user-form select[disabled] { background-color: #e9ecef; cursor: not-allowed; } 
 
-/* Сообщения и ошибки */
 .message { padding: 12px 15px; margin-top: 20px; border-radius: 4px; border: 1px solid transparent; font-size: 0.95rem; }
 .message.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
 .message.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
 .error-message { /* Стиль для ошибки списка */ text-align: center; padding: 15px; margin-top: 15px; border-radius: 4px; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
 .error-message.small { /* Для модалки */ padding: 8px; margin-top: 10px; text-align: left;}
 
-/* Список пользователей */
 .refresh-button { margin-bottom: 15px; padding: 8px 15px;}
 .user-table { width: 100%; border-collapse: collapse; margin-top: 15px; table-layout: fixed; /* Для лучшего контроля ширины */ }
 .user-table th, .user-table td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; word-wrap: break-word; /* Перенос длинных строк */ }

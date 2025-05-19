@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BackendGateway")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6529c6c1af56b773ff44469233d436b351b925f6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51506edadefa31ed6b9e5369f62c835cc81e0229")]
 [assembly: System.Reflection.AssemblyProductAttribute("BackendGateway")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BackendGateway")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

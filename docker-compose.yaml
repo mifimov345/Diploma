@@ -1,6 +1,48 @@
 version: '3.8'
 
 services:
+  auth_postgres:
+    image: postgres:15
+    container_name: auth_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: strongpassword
+      POSTGRES_DB: authdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    networks:
+      - myapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  file_postgres:
+    image: postgres:15
+    container_name: file_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: fileuser
+      POSTGRES_PASSWORD: strongpassword
+      POSTGRES_DB: filedb
+    ports:
+      - "5433:5432"
+    volumes:
+      - file_postgres_data:/var/lib/postgresql/data
+    networks:
+      - myapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fileuser -d filedb"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
   authservice:
     build:
       context: ./Backend/AuthService
@@ -10,6 +52,7 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=auth_postgres;Port=5432;Database=authdb;Username=authuser;Password=strongpassword
       - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set}
       - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
       - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
@@ -18,6 +61,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
     networks:
       - myapp-network
+    depends_on:
+      auth_postgres:
+        condition: service_healthy
 
   fileservice:
     build:
@@ -28,6 +74,7 @@ services:
     environment:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=file_postgres;Port=5432;Database=filedb;Username=fileuser;Password=strongpassword
       - Jwt__Key=${JWT_KEY?Error - JWT_KEY is not set}
       - Jwt__Issuer=${JWT_ISSUER?Error - JWT_ISSUER is not set}
       - Jwt__Audience=${JWT_AUDIENCE?Error - JWT_AUDIENCE is not set}
@@ -39,7 +86,10 @@ services:
     networks:
       - myapp-network
     depends_on:
-      - authservice
+      file_postgres:
+        condition: service_healthy
+      authservice:
+        condition: service_started
 
   searchservice:
     build:
@@ -58,7 +108,8 @@ services:
     networks:
       - myapp-network
     depends_on:
-      - fileservice
+      fileservice:
+        condition: service_started
 
   backendgateway:
     build:
@@ -70,14 +121,18 @@ services:
       - ASPNETCORE_URLS=http://+:80
       - ASPNETCORE_ENVIRONMENT=Development
       - TZ=Europe/Moscow
+      - FrontendUrl=${FRONTEND_URL?Error - FRONTEND_URL is not set}
     volumes:
       - /etc/localtime:/etc/localtime:ro
     networks:
       - myapp-network
     depends_on:
-      - authservice
-      - fileservice
-      - searchservice
+      authservice:
+        condition: service_started
+      fileservice:
+        condition: service_started
+      searchservice:
+        condition: service_started
 
   frontend:
     build:
@@ -92,9 +147,12 @@ services:
     networks:
       - myapp-network
     depends_on:
-      - backendgateway
+      backendgateway:
+        condition: service_started
 
 volumes:
+  auth_postgres_data:
+  file_postgres_data:
   fileservice-uploads:
   searchservice-index:
 

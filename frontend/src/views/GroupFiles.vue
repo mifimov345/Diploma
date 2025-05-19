@@ -70,10 +70,9 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import FileListItem from '@/components/files/FileListItem.vue';
-import FilePreviewModal from '@/components/files/FilePreviewModal.vue'; // Переиспользуем
+import FilePreviewModal from '@/components/files/FilePreviewModal.vue';
 
-// --- Состояние ---
-const files = ref([]); // Файлы группы
+const files = ref([]);
 const searchResultsById = ref([]);
 const searchQuery = ref('');
 const isUsingSearchResults = ref(false);
@@ -167,7 +166,6 @@ const downloadFileFromList = (fileId) => {
     }
 };
 
-// Скачивание и предпросмотр - без изменений
 const downloadFile = async (fileId, originalName) => {
     if (isDownloading.value) return;
     isDownloading.value = fileId; error.value = '';
@@ -212,7 +210,6 @@ const downloadFileFromPreview = (fileId) => {
      downloadFile(fileId, file ? file.OriginalName : `file_${fileId}`);
 };
 
-// --- Lifecycle ---
 onMounted(() => {
     loadCurrentUser();
     if (currentUserId.value && currentUserGroups.value.length > 0) {

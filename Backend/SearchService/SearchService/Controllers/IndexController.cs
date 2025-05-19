@@ -1,116 +1,118 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SearchService.Services;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Lucene.Net.Store;
+using Lucene.Net.Index;
+using Lucene.Net.Analysis.Standard;
+using Lucene.Net.Util;
+using Lucene.Net.Documents;
+using Lucene.Net.Search;
+using Lucene.Net.QueryParsers.Classic;
 
-[ApiController]
-[Route("api/[controller]")]
-public class IndexController : ControllerBase
+namespace SearchService.Controllers
 {
-    private readonly IIndexService _indexService;
-    private readonly ITextExtractorService _textExtractor;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<IndexController> _logger;
-
-    public IndexController(
-        IIndexService indexService,
-        ITextExtractorService textExtractor,
-        IHttpClientFactory httpClientFactory,
-        ILogger<IndexController> logger)
+    [ApiController]
+    [Route("api/index")]
+    public class IndexController : ControllerBase
     {
-        _indexService = indexService;
-        _textExtractor = textExtractor;
-        _httpClientFactory = httpClientFactory;
-        _logger = logger;
-    }
+        private static readonly string IndexPath = "/app/lucene_index";
+        private static readonly LuceneVersion AppLuceneVersion = LuceneVersion.LUCENE_48;
 
-    [HttpPost("index")]
-    public async Task<IActionResult> IndexFile([FromBody] IndexRequestModel model)
-    {
-        //_logger.LogInformation("Received index request for File ID: {FileId}, User ID: {UserId}, Name: {FileName}, Type: {ContentType}",
-        // model.FileId, model.UserId, model.OriginalName ?? "N/A", model.ContentType ?? "N/A");
-        if (model.FileId == Guid.Empty) return BadRequest("FileId is required.");
-        if (string.IsNullOrEmpty(model.OriginalName)) _logger.LogWarning("OriginalName is missing in index request for File ID {FileId}", model.FileId);
-
-        Stream fileStream = null;
-        string extractedText = null;
-        try
+        [HttpPost("index")]
+        public IActionResult IndexFile([FromBody] IndexRequest request)
         {
-            var client = _httpClientFactory.CreateClient();
-            var downloadUrl = $"http://fileservice/api/file/internal/download/{model.FileId}"; // ПРИМЕР URL!
-            //_logger.LogInformation("Downloading file from {DownloadUrl}", downloadUrl);
+            if (request == null || request.FileId == Guid.Empty)
+                return BadRequest("Invalid index request.");
 
-            var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            using var dir = FSDirectory.Open(IndexPath);
+            var analyzer = new StandardAnalyzer(AppLuceneVersion);
 
-            if (!response.IsSuccessStatusCode)
+            var config = new IndexWriterConfig(AppLuceneVersion, analyzer);
+            using var writer = new IndexWriter(dir, config);
+
+            // Удаляем старые документы для этого FileId
+            writer.DeleteDocuments(new Term("fileId", request.FileId.ToString()));
+
+            var doc = new Document
             {
-                //_logger.LogError("Failed to download file {FileId} from FileService. Status: {StatusCode}", model.FileId, response.StatusCode);
-                return StatusCode((int)response.StatusCode, $"Failed to download file from FileService: {response.ReasonPhrase}");
-            }
+                new StringField("fileId", request.FileId.ToString(), Field.Store.YES),
+                new Int32Field("userId", request.UserId, Field.Store.YES),
+                new StringField("originalName", request.OriginalName ?? "", Field.Store.YES),
+                new StringField("contentType", request.ContentType ?? "", Field.Store.YES),
+                new TextField("content", request.TextContent ?? "", Field.Store.NO)
+            };
 
-            fileStream = await response.Content.ReadAsStreamAsync();
-            //_logger.LogInformation("File {FileId} downloaded successfully.", model.FileId);
+            writer.AddDocument(doc);
+            writer.Flush(triggerMerge: false, applyAllDeletes: true);
 
-            extractedText = await _textExtractor.ExtractTextAsync(fileStream, model.ContentType, model.OriginalName);
+            return Ok();
+        }
 
-            if (string.IsNullOrEmpty(extractedText))
+        [HttpDelete("delete/{fileId}")]
+        public IActionResult DeleteFileIndex(Guid fileId)
+        {
+            if (fileId == Guid.Empty)
+                return BadRequest("Invalid file id.");
+
+            using var dir = FSDirectory.Open(IndexPath);
+            var analyzer = new StandardAnalyzer(AppLuceneVersion);
+
+            var config = new IndexWriterConfig(AppLuceneVersion, analyzer);
+            using var writer = new IndexWriter(dir, config);
+
+            writer.DeleteDocuments(new Term("fileId", fileId.ToString()));
+            writer.Flush(triggerMerge: false, applyAllDeletes: true);
+
+            return Ok();
+        }
+
+        [HttpGet("search")]
+        public IActionResult Search([FromQuery] string term)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+                return BadRequest("Empty search term.");
+
+            using var dir = FSDirectory.Open(IndexPath);
+            var analyzer = new StandardAnalyzer(AppLuceneVersion);
+            using var reader = DirectoryReader.Open(dir);
+            var searcher = new IndexSearcher(reader);
+
+            var parser = new MultiFieldQueryParser(AppLuceneVersion, new[] { "content" }, analyzer)
             {
-                _logger.LogWarning("No text could be extracted from file {FileId}.", model.FileId);
-                return Ok($"No text content extracted for file {model.FileId}.");
-            }
-        }
-        catch (Exception ex)
-        {
-            //_logger.LogError(ex, "Error downloading or extracting text for file {FileId}", model.FileId);
-            return StatusCode(StatusCodes.Status500InternalServerError, "Error processing file for indexing.");
-        }
-        finally
-        {
-            fileStream?.Dispose();
-        }
+                DefaultOperator = Operator.OR
+            };
 
-
-        if (!string.IsNullOrEmpty(extractedText))
-        {
+            Query query;
             try
             {
-                await _indexService.IndexFileAsync(model.FileId, model.UserId, extractedText);
-                //_logger.LogInformation("File {FileId} sent for indexing.", model.FileId);
-                return Ok($"File {model.FileId} indexed successfully.");
+                query = parser.Parse(term);
             }
-            catch (Exception exIndex)
+            catch
             {
-                //_logger.LogError(exIndex, "Error during indexing call for file {FileId}", model.FileId);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error indexing file content.");
+                return BadRequest("Invalid search query.");
             }
+
+            TopDocs topDocs = searcher.Search(query, 50);
+            var result = new List<Guid>();
+            foreach (var scoreDoc in topDocs.ScoreDocs)
+            {
+                var doc = searcher.Doc(scoreDoc.Doc);
+                if (Guid.TryParse(doc.Get("fileId"), out var id))
+                {
+                    result.Add(id);
+                }
+            }
+            return Ok(result);
         }
-        else
+
+        public class IndexRequest
         {
-            return Ok($"File {model.FileId} processed, but no text content found to index.");
+            public Guid FileId { get; set; }
+            public int UserId { get; set; }
+            public string OriginalName { get; set; }
+            public string ContentType { get; set; }
+            public string TextContent { get; set; }
         }
     }
-
-    [HttpDelete("index/{fileId}")]
-    public async Task<IActionResult> DeleteIndex(Guid fileId)
-    {
-        //_logger.LogInformation("Received delete index request for File ID: {FileId}", fileId);
-        if (fileId == Guid.Empty) return BadRequest("FileId is required.");
-
-        try
-        {
-            await _indexService.DeleteFileAsync(fileId);
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            //_logger.LogError(ex, "Error deleting file {FileId} from index.", fileId);
-            return StatusCode(StatusCodes.Status500InternalServerError, "Error removing file from index.");
-        }
-    }
-}
-
-public class IndexRequestModel
-{
-    public Guid FileId { get; set; }
-    public int UserId { get; set; }
-    public string OriginalName { get; set; }
-    public string ContentType { get; set; }
 }

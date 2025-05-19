@@ -4,7 +4,7 @@ import UserDashboard from '../views/UserDashboard.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
 import MyFilesView from '../views/MyFilesView.vue';
 import FileUpload from '../components/files/FileUpload.vue';
-import GroupFiles from '../views/GroupFiles.vue'; // Убедись, что путь верный
+import GroupFiles from '../views/GroupFiles.vue';
 import AdminFileBrowser from '../components/admin/AdminFileBrowser.vue';
 import AdminUserManagement from '../components/admin/AdminUserManagement.vue';
 import AdminGroupManagement from '../components/admin/AdminGroupManagement.vue';
@@ -88,7 +88,6 @@ router.beforeEach((to, from, next) => {
     return; 
   }
 
-  // 2. Если маршрут требует авторизации
   if (requiresAuth) {
     if (!isAuthenticated) {
       console.log("GUARD: Unauthenticated user on protected page. Redirecting to Login.");

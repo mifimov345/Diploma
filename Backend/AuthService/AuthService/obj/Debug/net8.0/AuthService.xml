@@ -4,45 +4,17 @@
         <name>AuthService</name>
     </assembly>
     <members>
-        <member name="T:AuthService.Controllers.AuthController">
-            <summary>
-            Контроллер для аутентификации пользователей.
-            </summary>
+        <member name="T:AuthService.Migrations.Initial">
+            <inheritdoc />
         </member>
-        <member name="M:AuthService.Controllers.AuthController.Login(AuthService.Controllers.LoginModel)">
-            <summary>
-            Аутентифицирует пользователя и возвращает JWT-токен при успешном входе.
-            </summary>
-            <param name="model">Объект с данными для входа (имя пользователя и пароль).</param>
-            <returns>
-            При успешной аутентификации возвращает статус 200 OK с объектом, содержащим JWT-токен.
-            Если данные некорректны, возвращает 401 Unauthorized.
-            </returns>
-            <remarks>
-            Используйте данный эндпоинт, передав в теле запроса JSON-объект с полями <c>Username</c> и <c>Password</c>.
-            Пример запроса:
-            <code>
-            {
-              "username": "admin",
-              "password": "password"
-            }
-            </code>
-            </remarks>
+        <member name="M:AuthService.Migrations.Initial.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
         </member>
-        <member name="T:AuthService.Controllers.LoginModel">
-            <summary>
-            Модель для передачи данных при входе в систему.
-            </summary>
+        <member name="M:AuthService.Migrations.Initial.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
         </member>
-        <member name="P:AuthService.Controllers.LoginModel.Username">
-            <summary>
-            Имя пользователя.
-            </summary>
-        </member>
-        <member name="P:AuthService.Controllers.LoginModel.Password">
-            <summary>
-            Пароль пользователя.
-            </summary>
+        <member name="M:AuthService.Migrations.Initial.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
         </member>
     </members>
 </doc>

@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace SearchService.Controllers
 {
+    [ApiController]
     [Route("api/[controller]")]
     public class SearchController : ControllerBase
     {
@@ -27,31 +28,22 @@ namespace SearchService.Controllers
             _searcherService = searcherService ?? throw new ArgumentNullException(nameof(searcherService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _environment = environment ?? throw new ArgumentNullException(nameof(environment));
-            //_logger.LogInformation(">>> SearchController INSTANCE CREATED (with Header Fallback) <<<");
         }
 
         [HttpGet]
-
         public async Task<IActionResult> Search([FromQuery] string term, [FromQuery] int? userId)
         {
-            //_logger.LogInformation("--- SearchController: Received search request. Term='{SearchTerm}', UserID filter={UserIdFilter}", term, userId?.ToString() ?? "None");
-
             if (!ModelState.IsValid)
-            {
-                //_logger.LogWarning("Search request failed ModelState validation: {ModelStateErrors}", ModelState);
                 return BadRequest(ModelState);
-            }
 
             if (string.IsNullOrWhiteSpace(term))
             {
-                //_logger.LogWarning("Search term is required.");
                 return BadRequest(new ProblemDetails { Title = "Search term is required.", Status = StatusCodes.Status400BadRequest });
             }
 
             try
             {
                 var results = await _searcherService.SearchFilesAsync(term, userId);
-                //_logger.LogInformation("Search completed. Found {ResultCount} matching file IDs.", results?.Count() ?? 0);
                 return Ok(results ?? Enumerable.Empty<Guid>());
             }
             catch (Exception ex)
@@ -65,6 +57,5 @@ namespace SearchService.Controllers
                 });
             }
         }
-
     }
 }

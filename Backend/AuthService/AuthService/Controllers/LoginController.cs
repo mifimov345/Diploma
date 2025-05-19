@@ -7,10 +7,10 @@ using AuthService.Models;
 using AuthService.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace AuthService.Controllers
 {
@@ -20,78 +20,67 @@ namespace AuthService.Controllers
     {
         private readonly IUserService _userService;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<LoginController> _logger;
 
-        public LoginController(IUserService userService, IConfiguration configuration, ILogger<LoginController> logger)
+        public LoginController(IUserService userService, IConfiguration configuration)
         {
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            LogJwtConfiguration();
         }
 
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            _logger.LogInformation(">>> Login endpoint reached. Method: {Method}", Request.Method);
-            
-
-            if (model == null)
-            {
-                _logger.LogWarning("Login attempt model is NULL.");
-                return BadRequest("Invalid request body or model binding failed.");
-            }
-
-            if (string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
-            {
-                _logger.LogWarning("Login attempt with missing username or password. Received Username: '{Username}', Password Provided: {PasswordProvided}", model.Username, !string.IsNullOrWhiteSpace(model.Password));
-                return BadRequest("Username and password are required.");
-            }
-            _logger.LogInformation(">>> Login endpoint reached. Method: {Method}", Request.Method); // Проверяем вход
-
             if (model == null || string.IsNullOrWhiteSpace(model.Username) || string.IsNullOrWhiteSpace(model.Password))
             {
-                //_logger.LogWarning("Login attempt with missing username or password.");
                 return BadRequest("Username and password are required.");
             }
 
-            _logger.LogInformation("Login attempt for user: {Username}", model.Username);
-            var user = _userService.Authenticate(model.Username, model.Password);
+            var user = await _userService.AuthenticateAsync(model.Username, model.Password);
 
             if (user == null)
             {
-                //_logger.LogWarning("Login failed for user: {Username} - Invalid credentials or user not found.", model.Username);
-                return Unauthorized("Invalid username or password."); // 401
+                return Unauthorized("Invalid username or password.");
             }
 
             try
             {
-                var token = GenerateJwtToken(user);
+                var groups = user.UserGroups?.Select(ug => ug.Group.Name).ToList() ?? new List<string>();
+                var token = GenerateJwtToken(user, groups);
                 var responseData = new
                 {
                     Token = token,
-                    Username = user.Username,
+                    Username = user.UserName,
                     Role = user.Role,
-                    Groups = user.Groups ?? new List<string>(),
+                    Groups = groups,
                     Id = user.Id
                 };
 
-                //_logger.LogInformation("Login successful for user: {Username}, Role: {Role}", responseData.Username, responseData.Role);
                 return Ok(responseData);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                //_logger.LogCritical(ex, "CRITICAL: Failed to generate JWT token for user {Username} after successful authentication. Check JWT configuration.", user.Username);
-                return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred during login processing.");
+                return StatusCode(500, "An internal error occurred during login processing.");
             }
         }
 
-
-        private string GenerateJwtToken(User user)
+        private string GenerateJwtToken(User user, List<string> groups)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            if (groups != null)
+            {
+                foreach (var group in groups.Where(g => !string.IsNullOrWhiteSpace(g)))
+                {
+                    claims.Add(new Claim("group", group));
+                }
+            }
+
             var keyString = _configuration["Jwt:Key"];
             var issuer = _configuration["Jwt:Issuer"];
             var audience = _configuration["Jwt:Audience"];
@@ -100,28 +89,7 @@ namespace AuthService.Controllers
             {
                 throw new InvalidOperationException("JWT configuration (Key/Issuer/Audience) is missing or invalid.");
             }
-            var key = Encoding.ASCII.GetBytes(keyString);
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role),
-            };
-
-            if (user.Groups != null) // Эта проверка проходит для superadmin
-            {
-                Console.WriteLine($"--- GenerateJwtToken: Found {user.Groups.Count} group(s) for user '{user.Username}': [{string.Join(",", user.Groups)}]");
-                foreach (var group in user.Groups.Where(g => !string.IsNullOrWhiteSpace(g)))
-                {
-                    Console.WriteLine($"--- GenerateJwtToken: Adding claim 'group' with value '{group}'");
-                    claims.Add(new Claim("group", group)); // Имя клейма "group"
-                }
-            }
-            else
-            {
-                Console.WriteLine($"--- GenerateJwtToken: No groups found for user '{user.Username}' (user.Groups is null or empty).");
-            }
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
@@ -129,46 +97,21 @@ namespace AuthService.Controllers
                 Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = issuer,
                 Audience = audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature)
             };
 
+            var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
 
-        private void LogJwtConfiguration()
+        public class LoginModel
         {
-            try
-            {
-                var key = _configuration["Jwt:Key"];
-                var issuer = _configuration["Jwt:Issuer"];
-                var audience = _configuration["Jwt:Audience"];
-                //_logger.LogInformation("--- AuthService JWT Config Loaded (LoginController) ---");
-                //_logger.LogInformation("Jwt:Key = {KeyStatus}", string.IsNullOrEmpty(key) ? "MISSING" : (key.Length < 32 ? $"SHORT ({key.Length} chars)" : key.Substring(0, 5) + "..."));
-                //_logger.LogInformation("Jwt:Issuer = {Issuer}", issuer);
-                //_logger.LogInformation("Jwt:Audience = {Audience}", audience);
-                //_logger.LogInformation("------------------------------------------------------");
-                if (string.IsNullOrEmpty(key) || key.Length < 32)
-                {
-                    _logger.LogCritical("CRITICAL: JWT Key is missing or too short in configuration! Auth will fail.");
-                }
-                if (string.IsNullOrEmpty(issuer)) _logger.LogCritical("CRITICAL: JWT Issuer is missing!");
-                if (string.IsNullOrEmpty(audience)) _logger.LogCritical("CRITICAL: JWT Audience is missing!");
+            [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Username is required.")]
+            public string Username { get; set; }
 
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error reading JWT configuration in LoginController.");
-            }
+            [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required.")]
+            public string Password { get; set; }
         }
-    }
-
-    public class LoginModel
-    {
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Username is required.")]
-        public string Username { get; set; }
-
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required.")]
-        public string Password { get; set; }
     }
 }

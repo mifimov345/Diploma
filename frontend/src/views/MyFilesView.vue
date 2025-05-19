@@ -221,7 +221,7 @@ const fetchMyFiles = async () => {
         files.value = response.data || [];
     } catch (err) {
         //console.error('Error fetching my files:', err);
-        files.value = []; // Очищаем при ошибке
+        files.value = [];
         if (err.response && err.response.status === 401) { error.value = 'Сессия истекла.'; }
         else if (err.response && err.response.status === 403) { error.value = 'Доступ запрещен.'; }
         else { error.value = 'Не удалось загрузить список файлов.'; }

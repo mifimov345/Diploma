@@ -3,12 +3,11 @@ using System.Security.Claims;
 using AuthService.Models;
 using AuthService.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Text.Json;
-
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace AuthService.Controllers
 {
@@ -18,366 +17,204 @@ namespace AuthService.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
-        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IUserService userService, ILogger<AuthController> logger)
+        public AuthController(IUserService userService)
         {
             _userService = userService ?? throw new ArgumentNullException(nameof(userService));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         [HttpPost("users")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult CreateUser([FromBody] CreateUserModel model)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserModel model)
         {
             if (!ModelState.IsValid)
-            {
-                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-                //_logger.LogWarning("CreateUser validation failed: {ValidationErrors}", string.Join("; ", errors));
                 return BadRequest(ModelState);
-            }
 
             var creatorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var creatorRole = User.FindFirstValue(ClaimTypes.Role);
-            //_logger.LogInformation("User creation attempt by UserID: {CreatorId}, Role: {CreatorRole} for new user: {NewUsername}, Role: {NewRole}",
-            //    creatorId, creatorRole, model.Username, model.Role);
 
             try
             {
                 User newUser;
-                var userToCreate = new User { Username = model.Username };
-                if (creatorRole == Roles.SuperAdmin) // Если создает SuperAdmin
+                var userToCreate = new User { UserName = model.Username };
+
+                if (creatorRole == "SuperAdmin")
                 {
-                    if (model.Role == Roles.Admin)
+                    if (model.Role == "Admin")
                     {
                         if (model.Groups == null || !model.Groups.Any(g => !string.IsNullOrWhiteSpace(g)))
-                        {
                             return BadRequest("Initial group(s) are required when creating an Admin.");
-                        }
-                        newUser = _userService.CreateAdmin(userToCreate, model.Password, model.Groups.Where(g => !string.IsNullOrWhiteSpace(g)).ToList(), creatorId);
+
+                        newUser = await _userService.CreateAdminAsync(userToCreate, model.Password, model.Groups.Where(g => !string.IsNullOrWhiteSpace(g)).ToList(), creatorId);
                     }
-                    else 
+                    else
                     {
-                        newUser = _userService.CreateUserBySuperAdmin(userToCreate, model.Password, model.Groups?.Where(g => !string.IsNullOrWhiteSpace(g)).ToList() ?? new List<string>());
+                        newUser = await _userService.CreateUserBySuperAdminAsync(userToCreate, model.Password, model.Groups?.Where(g => !string.IsNullOrWhiteSpace(g)).ToList() ?? new List<string>());
                     }
                 }
                 else
                 {
-                    if (model.Role != null && model.Role != Roles.User)
-                    {
-                        _logger.LogWarning("Admin ID {AdminId} attempted to create a non-User role.", creatorId);
+                    if (!string.IsNullOrEmpty(model.Role) && model.Role != "User")
                         return Forbid("Admins can only create users with the 'User' role.");
-                    }
                     if (model.Groups == null || model.Groups.Count != 1 || string.IsNullOrWhiteSpace(model.Groups[0]))
-                    {
-
-                        _logger.LogWarning("Admin ID {AdminId} must specify exactly one valid group when creating a user.", creatorId);
                         return BadRequest("You must specify exactly one valid group for the new user.");
-                }
-                    
+
                     string targetGroup = model.Groups[0].Trim();
-                    
-                    newUser = _userService.CreateUserByAdmin(userToCreate, model.Password, creatorId, targetGroup);
-
+                    newUser = await _userService.CreateUserByAdminAsync(userToCreate, model.Password, creatorId, targetGroup);
                 }
 
-                var result = new { newUser.Id, newUser.Username, newUser.Role, newUser.Groups };
+                var groups = await _userService.GetUserGroupsAsync(newUser.Id);
+                var result = new
+                {
+                    newUser.Id,
+                    Username = newUser.UserName,
+                    newUser.Role,
+                    Groups = groups.Select(g => g.Name).ToList(),
+                    newUser.CreatedByAdminId
+                };
                 return CreatedAtAction(nameof(GetUserById), new { id = newUser.Id }, result);
             }
-            catch (ArgumentException ex)
-            {
-                //_logger.LogWarning(ex, "Argument error during user creation for {NewUsername}: {ErrorMessage}", model.Username, ex.Message);
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                //_logger.LogWarning(ex, "Business logic error during user creation for {NewUsername}: {ErrorMessage}", model.Username, ex.Message);
-                return Conflict(new { message = ex.Message });
-            }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
             catch (Exception ex) when (ex.Message.Contains("is already taken", StringComparison.OrdinalIgnoreCase))
+            { return Conflict(new { message = ex.Message }); }
+            catch (Exception)
             {
-                //_logger.LogWarning("Attempt to create user with duplicate username '{DuplicateUsername}'.", model.Username);
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                //_logger.LogError(ex, "Generic error during user creation for {NewUsername}", model.Username);
                 return StatusCode(500, new { message = "An internal server error occurred during user creation." });
             }
         }
 
         [HttpGet("users")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult GetUsers()
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> GetUsers()
         {
             var requestingUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var requestingUserRole = User.FindFirstValue(ClaimTypes.Role);
-            //_logger.LogInformation("GetUsers request by UserID: {UserId}, Role: {UserRole}", requestingUserId, requestingUserRole);
 
             IEnumerable<User> users;
-
-            if (requestingUserRole == Roles.SuperAdmin)
+            if (requestingUserRole == "SuperAdmin")
             {
-                users = _userService.GetAll();
+                users = await _userService.GetAllAsync();
             }
             else
             {
-                var admin = _userService.GetById(requestingUserId);
-                if (admin == null || admin.Groups == null || !admin.Groups.Any())
+                var admin = await _userService.GetByIdAsync(requestingUserId);
+                if (admin == null || admin.UserGroups == null || !admin.UserGroups.Any())
                 {
-                    //_logger.LogWarning("Admin UserID: {AdminId} has no groups or not found, returning empty user list for GetUsers request.", requestingUserId);
                     users = Enumerable.Empty<User>();
                 }
                 else
                 {
-                    users = _userService.GetUsersInGroups(admin.Groups);
+                    var groupNames = admin.UserGroups.Select(ug => ug.Group.Name).ToList();
+                    users = await _userService.GetUsersInGroupsAsync(groupNames);
                 }
             }
 
-            var result = users.Select(u => new { u.Id, u.Username, u.Role, u.Groups, u.CreatedByAdminId }).ToList();
-            //_logger.LogInformation("Returning {UserCount} users for request by UserID: {UserId}", result.Count, requestingUserId);
+            var result = new List<object>();
+            foreach (var u in users)
+            {
+                var groups = u.UserGroups?.Select(ug => ug.Group.Name).ToList() ?? new List<string>();
+                result.Add(new
+                {
+                    u.Id,
+                    Username = u.UserName,
+                    u.Role,
+                    Groups = groups,
+                    u.CreatedByAdminId
+                });
+            }
+
             return Ok(result);
         }
 
         [HttpGet("users/{id:int}")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult GetUserById(int id)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> GetUserById(int id)
         {
             var requestingUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var requestingUserRole = User.FindFirstValue(ClaimTypes.Role);
-           // _logger.LogInformation("GetUserById request for ID: {TargetUserId} by UserID: {RequesterId}, Role: {RequesterRole}", id, requestingUserId, requestingUserRole);
 
-            var user = _userService.GetById(id);
+            var user = await _userService.GetByIdAsync(id);
             if (user == null)
-            {
-                //_logger.LogWarning("User with ID: {TargetUserId} not found for GetUserById request by UserID: {RequesterId}", id, requestingUserId);
                 return NotFound();
-            }
 
-            if (requestingUserRole == Roles.Admin)
+            if (requestingUserRole == "Admin")
             {
-                var admin = _userService.GetById(requestingUserId);
-                if (admin == null || admin.Groups == null)
-                {
-                    //_logger.LogError("Inconsistent state: Admin ID {AdminId} requesting user data not found or has null groups.", requestingUserId);
+                var admin = await _userService.GetByIdAsync(requestingUserId);
+                if (admin == null || admin.UserGroups == null)
                     return Forbid("Access denied due to inconsistent admin data.");
-                }
 
                 bool isSelf = user.Id == requestingUserId;
-                bool isInAdminGroup = user.Groups != null && user.Groups.Any(ug => admin.Groups.Contains(ug));
+                var adminGroupNames = admin.UserGroups.Select(ug => ug.Group.Name).ToList();
+                var userGroupNames = user.UserGroups?.Select(ug => ug.Group.Name).ToList() ?? new List<string>();
+                bool isInAdminGroup = userGroupNames.Any(g => adminGroupNames.Contains(g));
 
                 if (!isSelf && !isInAdminGroup)
-                {
-                    //_logger.LogWarning("Forbidden attempt by Admin ID: {AdminId} to view User ID: {TargetUserId} (not self or in managed group)", requestingUserId, id);
                     return Forbid("You do not have permission to view this user.");
-                }
             }
 
-            var result = new { user.Id, user.Username, user.Role, user.Groups, user.CreatedByAdminId };
+            var groups = user.UserGroups?.Select(ug => ug.Group.Name).ToList() ?? new List<string>();
+            var result = new
+            {
+                user.Id,
+                Username = user.UserName,
+                user.Role,
+                Groups = groups,
+                user.CreatedByAdminId
+            };
             return Ok(result);
         }
 
-        [HttpPut("users/{id:int}/groups")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult UpdateUserGroups(int id, [FromBody] List<string> groupNames)
+        [HttpPut("users/{id}/groups")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> UpdateUserGroups(int id, [FromBody] List<string> groupNames)
         {
-            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            //_logger.LogInformation("UpdateUserGroups request for UserID: {TargetUserId} by SuperAdmin ID: {AdminId}", id, adminId);
-
             if (groupNames == null)
-            {
-                //_logger.LogWarning("UpdateUserGroups failed for UserID {TargetUserId}: Received null instead of a group list.", id);
                 return BadRequest("Group list cannot be null. Send an empty array [] to remove all groups.");
-            }
 
             var validGroupNames = groupNames.Where(g => !string.IsNullOrWhiteSpace(g)).Distinct().ToList();
-            //_logger.LogDebug("Updating groups for UserID {TargetUserId} with: [{ValidGroups}]", id, string.Join(", ", validGroupNames));
 
             try
             {
-                _userService.UpdateUserGroups(id, validGroupNames);
-                //_logger.LogInformation("Successfully updated groups for UserID: {TargetUserId}", id);
+                await _userService.UpdateUserGroupsAsync(id, validGroupNames);
                 return NoContent();
             }
-            catch (KeyNotFoundException ex)
+            catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+            catch (Exception)
             {
-                //_logger.LogWarning("UpdateUserGroups failed: UserID {TargetUserId} not found.", id);
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                //_logger.LogWarning(ex, "UpdateUserGroups failed for UserID {TargetUserId} due to argument error: {ErrorMessage}", id, ex.Message);
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                //_logger.LogWarning(ex, "UpdateUserGroups failed for UserID {TargetUserId} due to business logic error: {ErrorMessage}", id, ex.Message);
-                return Conflict(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                //_logger.LogError(ex, "Error updating groups for UserID {TargetUserId}", id);
                 return StatusCode(500, new { message = "An internal error occurred while updating user groups." });
             }
         }
 
         [HttpDelete("users/{id:int}")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult DeleteUser(int id)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> DeleteUser(int id)
         {
             var deletedById = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var deletedByRole = User.FindFirstValue(ClaimTypes.Role);
-            //_logger.LogInformation("DeleteUser request for UserID: {TargetUserId} by UserID: {DeleterId}, Role: {DeleterRole}", id, deletedById, deletedByRole);
 
             if (id == deletedById)
-            {
-                //_logger.LogWarning("Attempt by UserID: {DeleterId} to delete own account.", deletedById);
                 return BadRequest("You cannot delete your own account.");
-            }
 
             try
             {
-                _userService.DeleteUser(id, deletedById, deletedByRole);
-                //_logger.LogInformation("Successfully deleted UserID: {TargetUserId} by UserID: {DeleterId}", id, deletedById);
+                await _userService.DeleteUserAsync(id, deletedById, deletedByRole);
                 return NoContent();
             }
-            catch (KeyNotFoundException)
+            catch (KeyNotFoundException) { return NotFound(); }
+            catch (InvalidOperationException ex) { return Forbid(ex.Message); }
+            catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+            catch (Exception)
             {
-                //_logger.LogWarning("DeleteUser failed: UserID {TargetUserId} not found for deletion by UserID: {DeleterId}.", id, deletedById);
-                return NotFound(); 
-            }
-            catch (InvalidOperationException ex)
-            {
-                //_logger.LogWarning(ex, "DeleteUser forbidden (e.g., deleting SuperAdmin) for UserID {TargetUserId} by UserID: {DeleterId}.", id, deletedById);
-                return Forbid(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                //_logger.LogWarning(ex, "DeleteUser unauthorized for UserID {TargetUserId} by UserID: {DeleterId}, Role: {DeleterRole}.", id, deletedById, deletedByRole);
-                return Forbid(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                //_logger.LogError(ex, "Error deleting UserID {TargetUserId} by UserID: {DeleterId}", id, deletedById);
                 return StatusCode(500, new { message = "An internal error occurred while deleting the user." });
             }
         }
 
-
-
-        [HttpPost("groups")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult CreateGroup([FromBody] GroupCreateModel model)
-        {
-            var creatorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var creatorRole = User.FindFirstValue(ClaimTypes.Role);            
-            //_logger.LogInformation("CreateGroup requested: '{GroupName}' by SuperAdmin ID: {AdminId}", model?.GroupName, adminId);
-
-            if (!ModelState.IsValid)
-            {
-                //_logger.LogWarning("CreateGroup failed validation for SuperAdmin ID: {AdminId}. Model: {@Model}", adminId, model);
-                return BadRequest(ModelState);
-            }
-            if (string.IsNullOrWhiteSpace(model.GroupName))
-            {
-                //_logger.LogWarning("CreateGroup failed: GroupName is empty or whitespace for SuperAdmin ID: {AdminId}.", adminId);
-                return BadRequest("GroupName cannot be empty or whitespace.");
-            }
-
-            var groupNameToCreate = model.GroupName.Trim();
-
-            if (groupNameToCreate.Equals("System", StringComparison.OrdinalIgnoreCase)){
-                //_logger.LogWarning("Attempt to create reserved group name 'System' by User ID: {CreatorId}", creatorId);
-                return BadRequest("Group name 'System' is reserved.");
-            }
-            try
-            {
-                bool created = _userService.CreateGroup(groupNameToCreate, creatorId, creatorRole);
-                if (created)
-                {
-                    //_logger.LogInformation("Group '{GroupName}' created successfully by User ID: {CreatorId} (Role: {CreatorRole}).", groupNameToCreate, 
-                    return Ok(new { message = $"Group '{groupNameToCreate}' created successfully." });
-                }
-                else
-                {
-                    //_logger.LogWarning("Attempt to create existing group '{GroupName}' by User ID: {CreatorId}.", groupNameToCreate, creatorId);
-                    return Conflict(new { message = $"Group '{groupNameToCreate}' already exists." });
-                }
-            }
-            catch (ArgumentException ex)
-            {
-                //_logger.LogWarning(ex, "Argument error creating group '{GroupName}' by SuperAdmin ID: {AdminId}.", groupNameToCreate, adminId);
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                //_logger.LogError(ex, "Error creating group '{GroupName}' by SuperAdmin ID: {AdminId}.", groupNameToCreate, adminId);
-                return StatusCode(500, new { message = "An error occurred while creating the group." });
-            }
-        }
-
-        [HttpGet("groups")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult GetGroups()
-        {
-            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            var userRole = User.FindFirstValue(ClaimTypes.Role);
-            IEnumerable<string> groups;
-            if (userRole == Roles.SuperAdmin)
-            {
-                groups = _userService.GetAllGroupNames();
-            }
-            else
-            {
-                groups = _userService.GetGroupsForAdmin(userId);
-            }
-            //_logger.LogInformation("GetGroups requested by SuperAdmin ID: {AdminId}", adminId);
-
-            var groupsList = groups as List<string> ?? groups?.ToList();
-            var groupsType = groups?.GetType().FullName ?? "null";
-            //_logger.LogInformation("--- AuthService GetGroups: Returning Ok. Result Type: {GroupsType}, Count: {GroupsCount}", groupsType, groupsList?.Count ?? -1);
-            if (groupsList != null && groupsList.Count > 0)
-            {
-                _logger.LogInformation("--- AuthService GetGroups: Groups sample: [{GroupsSample}]", string.Join(", ", groupsList));
-            }
-
-            return Ok(groups ?? new List<string>());
-        }
-
-        [HttpDelete("groups/{groupName}")]
-        [Authorize(Roles = Roles.SuperAdmin)]
-        public IActionResult DeleteGroup(string groupName)
-        {
-            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            //_logger.LogInformation("DeleteGroup requested: '{GroupName}' by SuperAdmin ID: {AdminId}", groupName, adminId);
-
-            if (string.IsNullOrWhiteSpace(groupName))
-            {
-                //_logger.LogWarning("DeleteGroup failed: GroupName is empty or whitespace for SuperAdmin ID: {AdminId}.", adminId);
-                return BadRequest("Group name is required.");
-            }
-
-            if (groupName.Equals("System", StringComparison.OrdinalIgnoreCase))
-            {
-                //_logger.LogWarning("Attempt to delete system group 'System' by SuperAdmin ID: {AdminId}.", adminId);
-                return BadRequest("Cannot delete the 'System' group.");
-            }
-
-            try
-            {
-                _userService.DeleteGroup(groupName);
-                //_logger.LogInformation("Successfully deleted group '{GroupName}' by SuperAdmin ID: {AdminId}. Affected users had the group removed.", groupName, adminId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                //_logger.LogError(ex, "Error deleting group '{GroupName}' by SuperAdmin ID: {AdminId}. Check potentially affected Admin users.", groupName, adminId);
-                return StatusCode(500, new { message = $"An error occurred while deleting group '{groupName}'. Check server logs." });
-            }
-        }
         [HttpPut("users/{id}/username")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult UpdateUsername(int id, [FromBody] UpdateUsernameModel model)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> UpdateUsername(int id, [FromBody] UpdateUsernameModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -386,23 +223,22 @@ namespace AuthService.Controllers
 
             try
             {
-                _userService.UpdateUsername(id, model.NewUsername, currentUserId, currentUserRole);
+                await _userService.UpdateUsernameAsync(id, model.NewUsername, currentUserId, currentUserRole);
                 return NoContent();
             }
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
             catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
             catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
-            catch (Exception ex)
+            catch (Exception)
             {
-                //_logger.LogError(ex, "Error updating username for user ID {UserId}", id);
                 return StatusCode(500, "An internal error occurred.");
             }
         }
 
         [HttpPut("users/{id}/password")]
-        [Authorize(Roles = $"{Roles.SuperAdmin},{Roles.Admin}")]
-        public IActionResult UpdatePassword(int id, [FromBody] UpdatePasswordModel model)
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> UpdatePassword(int id, [FromBody] UpdatePasswordModel model)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -411,17 +247,85 @@ namespace AuthService.Controllers
 
             try
             {
-                _userService.UpdatePassword(id, model.NewPassword, currentUserId, currentUserRole);
+                await _userService.UpdatePasswordAsync(id, model.NewPassword, currentUserId, currentUserRole);
                 return NoContent();
             }
             catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
             catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
             catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
             catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
-            catch (Exception ex)
+            catch (Exception)
             {
-                //_logger.LogError(ex, "Error updating password for user ID {UserId}", id);
                 return StatusCode(500, "An internal error occurred.");
+            }
+        }
+
+        [HttpPost("groups")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> CreateGroup([FromBody] GroupCreateModel model)
+        {
+            var creatorId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var creatorRole = User.FindFirstValue(ClaimTypes.Role);
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            if (string.IsNullOrWhiteSpace(model.GroupName))
+                return BadRequest("GroupName cannot be empty or whitespace.");
+
+            var groupNameToCreate = model.GroupName.Trim();
+            if (groupNameToCreate.Equals("System", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Group name 'System' is reserved.");
+
+            try
+            {
+                bool created = await _userService.CreateGroupAsync(groupNameToCreate, creatorId, creatorRole);
+                if (created)
+                    return Ok(new { message = $"Group '{groupNameToCreate}' created successfully." });
+                else
+                    return Conflict(new { message = $"Group '{groupNameToCreate}' already exists." });
+            }
+            catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while creating the group." });
+            }
+        }
+
+        [HttpGet("groups")]
+        [Authorize(Roles = "SuperAdmin,Admin")]
+        public async Task<IActionResult> GetGroups()
+        {
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
+            IEnumerable<string> groups;
+            if (userRole == "SuperAdmin")
+            {
+                groups = await _userService.GetAllGroupNamesAsync();
+            }
+            else
+            {
+                groups = await _userService.GetGroupsForAdminAsync(userId);
+            }
+            return Ok(groups ?? new List<string>());
+        }
+
+        [HttpDelete("groups/{groupName}")]
+        [Authorize(Roles = "SuperAdmin")]
+        public async Task<IActionResult> DeleteGroup(string groupName)
+        {
+            if (string.IsNullOrWhiteSpace(groupName))
+                return BadRequest("Group name is required.");
+            if (groupName.Equals("System", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Cannot delete the 'System' group.");
+
+            try
+            {
+                await _userService.DeleteGroupAsync(groupName);
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = $"An error occurred while deleting group '{groupName}'. Check server logs." });
             }
         }
     }
@@ -451,7 +355,7 @@ namespace AuthService.Controllers
         public string Password { get; set; }
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Role is required.")]
-        [System.ComponentModel.DataAnnotations.RegularExpression($"^({Roles.Admin}|{Roles.User})$", ErrorMessage = "Role must be 'Admin' or 'User'.")]
+        [System.ComponentModel.DataAnnotations.RegularExpression(@"^(Admin|User)$", ErrorMessage = "Role must be 'Admin' or 'User'.")]
         public string Role { get; set; }
 
         public List<string> Groups { get; set; }

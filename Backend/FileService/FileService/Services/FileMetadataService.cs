@@ -1,68 +1,119 @@
-﻿using FileService.Controllers;
-using FileService.Models;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FileService.Controllers;
+using FileService.Data;
+using FileService.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FileService.Services
 {
-    public interface IFileMetadataService
-    {
-        Task AddMetadataAsync(FileMetadata metadata);
-        Task<FileMetadata> GetMetadataByIdAsync(Guid id);
-        Task<IEnumerable<FileMetadata>> GetMetadataByUserAsync(int userId);
-        Task<IEnumerable<FileMetadata>> GetAllMetadataAsync();
-        Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId);
-        Task<string> DeleteMetadataAndFileAsync(Guid id);
-        Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups, string scope = "default"); 
-        Task<bool> UpdateFileGroupAsync(Guid fileId, string newGroupName, int currentUserId, string currentUserRole, List<string> currentUserGroups);
-        Task<IEnumerable<FileMetadata>> GetGroupFilesForUserAsync(int userId, List<string> userGroups);
-
-    }
-
     public class FileMetadataService : IFileMetadataService
     {
-        private readonly ConcurrentDictionary<Guid, FileMetadata> _metadataStore = new();
-
+        private readonly FileDbContext _db;
         private readonly ILogger<FileMetadataService> _logger;
 
-        public FileMetadataService(ILogger<FileMetadataService> logger)
+        public FileMetadataService(FileDbContext db, ILogger<FileMetadataService> logger)
         {
+            _db = db;
             _logger = logger;
         }
 
-        public Task AddMetadataAsync(FileMetadata metadata)
+        public async Task AddMetadataAsync(FileMetadata metadata)
         {
-            _metadataStore.TryAdd(metadata.Id, metadata);
-            return Task.CompletedTask;
+            if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+            await _db.FileMetadatas.AddAsync(metadata);
+            await _db.SaveChangesAsync();
         }
 
-        public Task<FileMetadata> GetMetadataByIdAsync(Guid id)
+        public async Task<FileMetadata> GetMetadataByIdAsync(Guid id)
         {
-            _metadataStore.TryGetValue(id, out var metadata);
-            return Task.FromResult(metadata);
+            return await _db.FileMetadatas.FirstOrDefaultAsync(m => m.Id == id);
         }
 
-        public Task<IEnumerable<FileMetadata>> GetMetadataByUserAsync(int userId)
+        public async Task<IEnumerable<FileMetadata>> GetMetadataByUserAsync(int userId)
         {
-            var userFiles = _metadataStore.Values.Where(m => m.UserId == userId).ToList();
-            return Task.FromResult<IEnumerable<FileMetadata>>(userFiles);
+            return await _db.FileMetadatas.Where(m => m.UserId == userId).ToListAsync();
         }
 
-        public Task<IEnumerable<FileMetadata>> GetAllMetadataAsync()
+        public async Task<IEnumerable<FileMetadata>> GetAllMetadataAsync()
         {
-            return Task.FromResult<IEnumerable<FileMetadata>>(_metadataStore.Values.ToList());
+            return await _db.FileMetadatas.ToListAsync();
+        }
+
+        public async Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId)
+        {
+            if (groupNames == null || !groupNames.Any())
+                return await GetMetadataByUserAsync(requestingAdminId);
+
+            return await _db.FileMetadatas
+                .Where(m => (m.UserGroup != null && groupNames.Contains(m.UserGroup)) || m.UserId == requestingAdminId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<FileMetadata>> GetGroupFilesForUserAsync(int userId, List<string> userGroups)
+        {
+            if (userGroups == null || !userGroups.Any())
+                return Enumerable.Empty<FileMetadata>();
+
+            return await _db.FileMetadatas
+                .Where(m => m.UserId != userId && m.UserGroup != null && userGroups.Contains(m.UserGroup))
+                .ToListAsync();
+        }
+
+        public async Task<string> DeleteMetadataAndFileAsync(Guid id)
+        {
+            var entity = await _db.FileMetadatas.FirstOrDefaultAsync(m => m.Id == id);
+            if (entity != null)
+            {
+                var path = entity.FilePath;
+                _db.FileMetadatas.Remove(entity);
+                await _db.SaveChangesAsync();
+                return path;
+            }
+            return null;
+        }
+
+        public async Task<IEnumerable<FileMetadata>> SearchByOriginalNameAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups, string scope = "default")
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return Enumerable.Empty<FileMetadata>();
+
+            var term = searchTerm.Trim().ToLowerInvariant();
+            IQueryable<FileMetadata> query = _db.FileMetadatas;
+
+            if (currentUserRole == AppRoles.User)
+            {
+                if (scope.Equals("group", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(m => m.UserId != currentUserId && m.UserGroup != null && currentUserGroups.Contains(m.UserGroup));
+                }
+                else
+                {
+                    query = query.Where(m => m.UserId == currentUserId);
+                }
+            }
+            else if (currentUserRole == AppRoles.Admin)
+            {
+                query = query.Where(m => m.UserId == currentUserId || (m.UserGroup != null && currentUserGroups.Contains(m.UserGroup)));
+            }
+
+            return await query.Where(m => m.OriginalName.ToLower().Contains(term)).ToListAsync();
+        }
+
+        public async Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups, string scope = "default")
+        {
+            return await SearchByOriginalNameAsync(searchTerm, currentUserId, currentUserRole, currentUserGroups, scope);
         }
 
         public async Task<bool> UpdateFileGroupAsync(Guid fileId, string newGroupName, int currentUserId, string currentUserRole, List<string> currentUserGroups)
         {
             _logger.LogInformation("Attempting to update group for File ID {FileId} to '{NewGroup}' by User ID {UserId} (Role: {UserRole})",
-                 fileId, newGroupName, currentUserId, currentUserRole);
+                fileId, newGroupName, currentUserId, currentUserRole);
 
-            FileMetadata? metadata = await GetMetadataByIdAsync(fileId);
+            var metadata = await GetMetadataByIdAsync(fileId);
 
             if (metadata == null)
             {
@@ -71,10 +122,7 @@ namespace FileService.Services
             }
 
             if (string.IsNullOrWhiteSpace(newGroupName) || newGroupName.Equals("System", StringComparison.OrdinalIgnoreCase))
-            {
-                //_logger.LogWarning("UpdateFileGroup: Attempted to assign invalid group name '{NewGroup}' for File ID {FileId}", newGroupName, fileId);
                 throw new ArgumentException("Invalid group name specified.");
-            }
 
             bool canUpdate = false;
 
@@ -93,100 +141,14 @@ namespace FileService.Services
                 canUpdate = metadata.UserId == currentUserId;
             }
 
-            if (!canUpdate)
-            {
-                //_logger.LogWarning("UpdateFileGroup: Access DENIED for User ID {UserId} to change group for File ID {FileId}", currentUserId, fileId);
-                return false;
-            }
+            if (!canUpdate) return false;
 
             if (currentUserRole != AppRoles.SuperAdmin && !currentUserGroups.Contains(newGroupName))
-            {
-                //_logger.LogWarning("UpdateFileGroup: User ID {UserId} attempted to assign group '{NewGroup}' which they do not belong to. File ID: {FileId}", currentUserId, newGroupName, fileId);
                 return false;
-            }
-            string oldGroup = metadata.UserGroup ?? "N/A";
+
             metadata.UserGroup = newGroupName;
-
-            //_logger.LogInformation("Successfully updated group for File ID {FileId} from '{OldGroup}' to '{NewGroup}' by User ID {UserId}",
-                //fileId, oldGroup, newGroupName, currentUserId);
-
+            await _db.SaveChangesAsync();
             return true;
-        }
-
-        public Task<IEnumerable<FileMetadata>> GetMetadataByUserGroupsAsync(List<string> groupNames, int requestingAdminId)
-        {
-            if (groupNames == null || !groupNames.Any())
-            {
-                return GetMetadataByUserAsync(requestingAdminId);
-            }
-
-            var groupFiles = _metadataStore.Values
-                .Where(m => (m.UserGroup != null && groupNames.Contains(m.UserGroup)) || m.UserId == requestingAdminId)
-                .Distinct()
-                .ToList();
-
-            return Task.FromResult<IEnumerable<FileMetadata>>(groupFiles);
-        }
-
-        public Task<IEnumerable<FileMetadata>> GetGroupFilesForUserAsync(int userId, List<string> userGroups)
-        {
-            // Возвращает файлы из групп пользователя, ИСКЛЮЧАЯ его собственные
-            if (userGroups == null || !userGroups.Any())
-            {
-                return Task.FromResult(Enumerable.Empty<FileMetadata>());
-            }
-
-            var groupFiles = _metadataStore.Values
-                .Where(m => m.UserId != userId && // Не собственные файлы
-                            m.UserGroup != null && // Должна быть группа
-                            userGroups.Contains(m.UserGroup)) // Пользователь состоит в этой группе
-                .ToList();
-            _logger.LogInformation("GetGroupFilesForUserAsync for User ID {UserId} in Groups [{UserGroups}] found {Count} files.", userId, string.Join(",", userGroups), groupFiles.Count);
-            return Task.FromResult<IEnumerable<FileMetadata>>(groupFiles);
-        }
-
-        public Task<string> DeleteMetadataAndFileAsync(Guid id)
-        {
-            if (_metadataStore.TryRemove(id, out var metadata))
-            {
-                return Task.FromResult(metadata.FilePath);
-            }
-            return Task.FromResult<string>(null);
-        }
-
-        public Task<IEnumerable<FileMetadata>> SearchMetadataAsync(string searchTerm, int currentUserId, string currentUserRole, List<string> currentUserGroups, string scope = "default")
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
-            {
-                return Task.FromResult(Enumerable.Empty<FileMetadata>());
-            }
-
-            var term = searchTerm.Trim().ToLowerInvariant();
-
-            IEnumerable<FileMetadata> query = _metadataStore.Values;
-
-            if (currentUserRole == AppRoles.User)
-            {
-                if (scope.Equals("group", StringComparison.OrdinalIgnoreCase))
-                {
-                    // Поиск по файлам группы (не своим)
-                    query = query.Where(m => m.UserId != currentUserId && m.UserGroup != null && currentUserGroups.Contains(m.UserGroup));
-                }
-                else
-                {
-                    // Поиск по своим файлам (default)
-                    query = query.Where(m => m.UserId == currentUserId);
-                }
-            }
-            else if (currentUserRole == AppRoles.Admin)
-            {
-                query = query.Where(m => m.UserId == currentUserId || (m.UserGroup != null && currentUserGroups.Contains(m.UserGroup)));
-            }
-
-            var results = query.Where(m => m.OriginalName.ToLowerInvariant().Contains(term))
-                               .ToList();
-
-            return Task.FromResult<IEnumerable<FileMetadata>>(results);
         }
     }
 }

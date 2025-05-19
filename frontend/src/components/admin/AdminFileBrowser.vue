@@ -142,23 +142,23 @@
   import FileListItem from '@/components/files/FileListItem.vue';
   import FilePreviewModal from '@/components/files/FilePreviewModal.vue';
   
-  const allFiles = ref([]); // Все файлы с бэкенда
-  const searchResultsById = ref([]); // Массив ID из поиска
+  const allFiles = ref([]);
+  const searchResultsById = ref([]);
   const searchQuery = ref('');
-  const isUsingSearchResults = ref(false); // Флаг активности поиска
-  const isLoading = ref(false); // Загрузка полного списка
-  const isLoadingSearch = ref(false); // Загрузка поиска
+  const isUsingSearchResults = ref(false);
+  const isLoading = ref(false);
+  const isLoadingSearch = ref(false);
   const isDownloading = ref(null);
   const error = ref('');
   const searchTimeout = ref(null);
   const showPreviewModal = ref(false);
   const previewFileDetails = ref(null);
-  const isDeleting = ref(null); // Добавляем флаг удаления
+  const isDeleting = ref(null); 
   
   const showChangeGroupModal = ref(false);
-  const fileToChangeGroup = ref(null); // Объект файла { Id, OriginalName, UserGroup, UserId }
-  const availableGroups = ref([]); // Все группы из AuthService
-  const selectedNewGroup = ref(''); // Выбранная группа в модалке
+  const fileToChangeGroup = ref(null);
+  const availableGroups = ref([]);
+  const selectedNewGroup = ref('');
   const isUpdatingGroup = ref(false);
   const changeGroupError = ref('');
   
@@ -168,7 +168,7 @@
   
   const isActionInProgress = computed(() => (fileId) =>
       isDownloading.value === fileId ||
-      isDeleting.value === fileId || // Учитываем удаление
+      isDeleting.value === fileId ||
       (fileToChangeGroup.value?.Id === fileId && isUpdatingGroup.value)
   );
   
@@ -183,7 +183,6 @@
     if (!isUsingSearchResults.value) return allFiles.value;
     if (searchResultsById.value.length === 0 && searchQuery.value) return [];
     const searchIdSet = new Set(searchResultsById.value);
-    // Убедимся, что allFiles содержит файлы перед фильтрацией
     if (!Array.isArray(allFiles.value)) return [];
     return allFiles.value.filter(file => file && typeof file.Id !== 'undefined' && searchIdSet.has(file.Id));
   });
@@ -193,9 +192,8 @@
         if (!filteredFiles.value || filteredFiles.value.length === 0) return [];
         return [{ key: 'search-results', groupName: 'Результаты поиска', userId: null, files: filteredFiles.value }];
     }
-    // Группировка по UserId и UserGroup
     const groups = {};
-     if (!Array.isArray(allFiles.value)) return []; // Проверка, что allFiles массив
+     if (!Array.isArray(allFiles.value)) return [];
     allFiles.value.forEach(file => {
       // Проверка на наличие file и file.UserId
       if (file && typeof file.UserId !== 'undefined') {
@@ -213,9 +211,8 @@
            console.warn("Skipping invalid file object during grouping:", file);
       }
     });
-    // Сортировка групп
     return Object.values(groups).sort((a, b) => {
-        if (a.userId !== b.userId) return (a.userId || 0) - (b.userId || 0); // Обработка возможного null/undefined
+        if (a.userId !== b.userId) return (a.userId || 0) - (b.userId || 0);
         return (a.groupName || '').localeCompare(b.groupName || '');
     });
   });
@@ -227,26 +224,23 @@
       if (isSuperAdmin.value) {
           return availableGroups.value;
       }
-      // Возвращаем группы, в которых состоит текущий пользователь (Admin)
       const userGroupsSet = new Set(currentUserGroups.value || []);
       return (availableGroups.value || []).filter(g => userGroupsSet.has(g));
   });
   
   
-  // Группы, доступные для ВЫБОРА в модальном окне смены группы
   const assignableGroupsForModal = computed(() => {
       if (!fileToChangeGroup.value) return [];
   
       const currentFileGroup = fileToChangeGroup.value.UserGroup;
   
       if (isSuperAdmin.value) {
-          // SuperAdmin может выбрать любую группу, кроме текущей (если она есть)
           return availableGroups.value.filter(g => g !== currentFileGroup);
       }
   
       return (currentUserGroups.value || []).filter(g =>
-          availableGroups.value.includes(g) && // Группа существует
-          g !== currentFileGroup // Не текущая группа файла
+          availableGroups.value.includes(g) &&
+          g !== currentFileGroup
       );
   });
   
@@ -259,7 +253,6 @@
        } catch(e) {
            console.error("AdminFileBrowser - Failed to load current user data:", e);
            error.value="Ошибка загрузки данных пользователя.";
-           // Сбрасываем значения при ошибке
            currentUserId.value = null;
            currentUserRole.value = null;
            currentUserGroups.value = [];
@@ -289,8 +282,6 @@
     if (!searchQuery.value) { searchResultsById.value = []; isUsingSearchResults.value = false; error.value = ''; return; }
     isLoadingSearch.value = true; error.value = ''; isUsingSearchResults.value = true;
     try {
-        // Добавляем scope=all для поиска Admin'а, если нужно искать везде
-        // SuperAdmin и так ищет везде
         const params = { term: searchQuery.value };
         if (currentUserRole.value === 'Admin') {
             params.scope = 'all';
@@ -298,8 +289,6 @@
         const response = await axios.get(`/api/search`, { params });
         searchResultsById.value = response.data || [];
         console.log("Search results (IDs):", searchResultsById.value);
-        // Пересчитываем filteredFiles явно, если computed не сработал
-        // filteredFiles.value = allFiles.value.filter(file => file && typeof file.Id !== 'undefined' && new Set(searchResultsById.value).has(file.Id));
     } catch (err) {
         console.error('Error searching files:', err);
         searchResultsById.value = [];
@@ -318,7 +307,7 @@
   };
   
   const downloadFile = async (fileId, originalName) => {
-    if (isDownloading.value === fileId) return; // Предотвращаем двойное скачивание
+    if (isDownloading.value === fileId) return; 
     isDownloading.value = fileId; error.value = '';
     try {
         const response = await axios.get(`/api/file/download/${fileId}`, { responseType: 'blob' });
@@ -344,7 +333,7 @@
   };
   
   const deleteFile = async (fileId, originalName) => {
-     if (isDeleting.value === fileId) return; // Предотвращаем двойное удаление
+     if (isDeleting.value === fileId) return; 
      if (!confirm(`Уверены, что хотите удалить файл "${originalName}" (ID: ${fileId})?`)) return;
   
      isDeleting.value = fileId;
@@ -367,13 +356,12 @@
         } else { deleteError += ' Ошибка сети.'; }
         error.value = deleteError;
      } finally {
-         isDeleting.value = null; // Сбрасываем флаг
+         isDeleting.value = null; 
      }
   };
   
-  // Обработчики для FileListItem
   const downloadFileFromList = (fileId) => {
-      const file = allFiles.value.find(f => f.Id === fileId); // Ищем во всех файлах
+      const file = allFiles.value.find(f => f.Id === fileId);
       if (file) {
           downloadFile(fileId, file.OriginalName);
       } else {
@@ -383,7 +371,7 @@
   };
   
   const deleteFileFromList = (fileId) => {
-      const file = allFiles.value.find(f => f.Id === fileId); // Ищем во всех файлах
+      const file = allFiles.value.find(f => f.Id === fileId);
       if (file) {
           deleteFile(fileId, file.OriginalName);
       } else {
@@ -392,7 +380,6 @@
       }
   };
   
-  // Функции для модального окна Preview
   const openPreviewModal = (file) => {
        if (!file || !file.Id) {
             console.warn("Attempted to open preview for invalid file:", file);
@@ -414,10 +401,7 @@
        downloadFile(fileId, file ? file.OriginalName : `файл_${fileId}`);
   };
   
-  // ---- Логика смены группы файла ----
   const fetchAvailableGroups = async () => {
-      // Загружаем ВСЕ группы, если SuperAdmin, или только СВОИ, если Admin
-      // Бэкенд (/api/auth/groups) теперь сам фильтрует для Admin
       console.log("AdminFileBrowser - Fetching available groups...");
       try {
           const response = await axios.get('/api/auth/groups');
@@ -426,18 +410,18 @@
       } catch (err) {
           console.error("AdminFileBrowser - Error fetching available groups:", err);
           error.value = "Не удалось загрузить список доступных групп.";
-          availableGroups.value = []; // Очищаем при ошибке
+          availableGroups.value = [];
       }
   };
   
   const canChangeGroup = (file) => {
-      console.log('canChangeGroup called for file:', file?.OriginalName, 'User ID:', file?.UserId, 'Group:', file?.UserGroup); // Лог 1: Входные данные
+      console.log('canChangeGroup called for file:', file?.OriginalName, 'User ID:', file?.UserId, 'Group:', file?.UserGroup);
       if (!file || !currentUserRole.value || !currentUserId.value) {
           console.log('canChangeGroup: Missing file, role, or currentUserId');
           return false;
       }
   
-      console.log('Current User Info:', { id: currentUserId.value, role: currentUserRole.value, isSuper: isSuperAdmin.value, groups: currentUserGroups.value }); // Лог 2: Данные текущего пользователя
+      console.log('Current User Info:', { id: currentUserId.value, role: currentUserRole.value, isSuper: isSuperAdmin.value, groups: currentUserGroups.value });
   
       if (isSuperAdmin.value) {
           console.log('canChangeGroup: Is SuperAdmin, returning true');
@@ -449,18 +433,17 @@
            const isFileInAdminGroup = !!file.UserGroup && (currentUserGroups.value || []).includes(file.UserGroup);
   
            const canAssignToOtherGroup = (currentUserGroups.value || []).some(adminGroup =>
-                  availableGroups.value.includes(adminGroup) && // Группа существует
-                  adminGroup !== file.UserGroup // Это не текущая группа файла
+                  availableGroups.value.includes(adminGroup) &&
+                  adminGroup !== file.UserGroup
            );
   
-           console.log('canChangeGroup for Admin:', { isAdminOwner, isFileInAdminGroup, canAssignToOtherGroup }); // Лог 3
+           console.log('canChangeGroup for Admin:', { isAdminOwner, isFileInAdminGroup, canAssignToOtherGroup });
   
            const result = (isAdminOwner || isFileInAdminGroup) && canAssignToOtherGroup;
-           console.log('canChangeGroup final result for Admin:', result); // Лог 4
+           console.log('canChangeGroup final result for Admin:', result);
            return result;
       }
   
-      // Для роли User (на всякий случай, хотя это AdminFileBrowser)
       if (currentUserRole.value === 'User') {
           const isOwner = file.UserId === currentUserId.value;
           const hasOtherGroups = (currentUserGroups.value || []).some(g => g !== file.UserGroup);
@@ -470,17 +453,17 @@
   
   
       console.log('canChangeGroup: Unknown role or condition not met, returning false');
-      return false; // По умолчанию запрещаем
+      return false; 
   };
   
   
   const openChangeGroupModal = (file) => {
-      if (!canChangeGroup(file)) { // Проверяем права перед открытием
+      if (!canChangeGroup(file)) {
            console.warn("Attempted to open change group modal without permission for file:", file?.OriginalName);
            return;
        }
-      fileToChangeGroup.value = { ...file }; // Копируем данные файла
-      selectedNewGroup.value = ''; // Сбрасываем выбор
+      fileToChangeGroup.value = { ...file };
+      selectedNewGroup.value = '';
       changeGroupError.value = '';
       showChangeGroupModal.value = true;
        if (availableGroups.value.length === 0 && (isSuperAdmin.value || currentUserRole.value === 'Admin')) {
@@ -509,7 +492,7 @@
           await axios.put(`/api/file/files/${fileId}/group`, payload);
   
            closeChangeGroupModal();
-           await fetchAllFiles(); // Перезагружаем список файлов после смены группы
+           await fetchAllFiles();
   
       } catch (err) {
           console.error(`Error changing group for file ${fileId}:`, err);
@@ -527,7 +510,6 @@
       loadCurrentUser();
       if (currentUserId.value) {
           fetchAllFiles();
-           // Загружаем группы только если это Admin или SuperAdmin
            if (currentUserRole.value === 'SuperAdmin' || currentUserRole.value === 'Admin') {
                fetchAvailableGroups();
            }
@@ -543,7 +525,6 @@
   </script>
   
   <style scoped>
-  /* Стили обертки и кнопок */
   .file-list {
       list-style: none;
       padding: 0;

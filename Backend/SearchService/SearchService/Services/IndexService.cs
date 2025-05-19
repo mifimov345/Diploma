@@ -3,13 +3,10 @@ using Lucene.Net.Documents;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
 using Lucene.Net.Util;
+using SearchService.Services;
 using Directory = Lucene.Net.Store.Directory;
-
-public interface IIndexService
-{
-    Task IndexFileAsync(Guid fileId, int userId, string textContent);
-    Task DeleteFileAsync(Guid fileId);
-}
+using Lucene.Net.QueryParsers.Classic;
+using Lucene.Net.Search;
 
 public class IndexService : IIndexService, IDisposable
 {
@@ -17,6 +14,7 @@ public class IndexService : IIndexService, IDisposable
     private readonly Directory _indexDirectory;
     private readonly IndexWriter _writer;
     private readonly ILogger<IndexService> _logger;
+    private readonly StandardAnalyzer _analyzer;
 
     public IndexService(IConfiguration configuration, ILogger<IndexService> logger)
     {
@@ -26,11 +24,10 @@ public class IndexService : IIndexService, IDisposable
         {
             System.IO.Directory.CreateDirectory(indexPath);
         }
-        //_logger.LogInformation("Initializing Lucene Index at: {IndexPath}", indexPath);
 
         _indexDirectory = FSDirectory.Open(indexPath);
-        var analyzer = new StandardAnalyzer(AppLuceneVersion);
-        var indexConfig = new IndexWriterConfig(AppLuceneVersion, analyzer)
+        _analyzer = new StandardAnalyzer(AppLuceneVersion);
+        var indexConfig = new IndexWriterConfig(AppLuceneVersion, _analyzer)
         {
             OpenMode = OpenMode.CREATE_OR_APPEND
         };
@@ -40,10 +37,7 @@ public class IndexService : IIndexService, IDisposable
     public Task IndexFileAsync(Guid fileId, int userId, string textContent)
     {
         if (string.IsNullOrWhiteSpace(textContent))
-        {
-            //_logger.LogWarning("Skipping indexing for File ID {FileId} due to empty text content.", fileId);
             return Task.CompletedTask;
-        }
 
         try
         {
@@ -51,10 +45,8 @@ public class IndexService : IIndexService, IDisposable
             {
                 new StringField("fileId", fileId.ToString(), Field.Store.YES),
                 new Int32Field("userId", userId, Field.Store.YES),
-                new TextField("content", textContent, Field.Store.NO)
+                new TextField("content", textContent, Field.Store.YES)
             };
-
-            //_logger.LogDebug("Indexing document for File ID: {FileId}, User ID: {UserId}", fileId, userId);
             _writer.UpdateDocument(new Term("fileId", fileId.ToString()), doc);
             _writer.Commit();
         }
@@ -69,7 +61,6 @@ public class IndexService : IIndexService, IDisposable
     {
         try
         {
-            //_logger.LogInformation("Deleting document from index for File ID: {FileId}", fileId);
             _writer.DeleteDocuments(new Term("fileId", fileId.ToString()));
             _writer.Commit();
         }
@@ -80,10 +71,35 @@ public class IndexService : IIndexService, IDisposable
         return Task.CompletedTask;
     }
 
+    public List<Guid> Search(string queryText)
+    {
+        var results = new List<Guid>();
+        try
+        {
+            using var reader = DirectoryReader.Open(_writer, applyAllDeletes: true);
+            var searcher = new IndexSearcher(reader);
+
+            var parser = new MultiFieldQueryParser(AppLuceneVersion, new[] { "content", "name" }, _analyzer);
+            var query = parser.Parse(QueryParserBase.Escape(queryText));
+
+            var hits = searcher.Search(query, 50).ScoreDocs; // 50 результатов макс
+
+            foreach (var hit in hits)
+            {
+                var doc = searcher.Doc(hit.Doc);
+                if (Guid.TryParse(doc.Get("fileId"), out var id))
+                    results.Add(id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching Lucene index for query '{QueryText}'", queryText);
+        }
+        return results;
+    }
 
     public void Dispose()
     {
-        //_logger.LogInformation("Disposing Lucene IndexWriter.");
         _writer?.Dispose();
         _indexDirectory?.Dispose();
     }

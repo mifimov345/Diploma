@@ -1,4 +1,6 @@
-﻿namespace FileService.Models
+﻿using System;
+
+namespace FileService.Models
 {
     public class FileMetadata
     {
@@ -11,5 +13,6 @@
         public int UserId { get; set; }
         public string UserGroup { get; set; }
         public string FilePath { get; set; }
+        public string Description { get; set; }
     }
 }

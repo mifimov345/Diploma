@@ -87,7 +87,6 @@ export default {
           return pattern.test(this.newGroupName) && this.newGroupName.length <= 50;
       },
       sortedGroups() {
-          // Фильтруем "System", если пользователь не SuperAdmin
          const filtered = this.isSuperAdmin
              ? this.groups
              : this.groups.filter(g => g.toLowerCase() !== 'system');
@@ -136,14 +135,12 @@ export default {
         this.message = response.data.message || `Группа "${groupNameToCreate}" успешно создана.`;
         this.messageType = 'success';
         this.newGroupName = '';
-        // --- Добавляем обновление localStorage ---
         try {
             const currentGroups = JSON.parse(localStorage.getItem('userGroups') || '[]');
             if (!currentGroups.includes(groupNameToCreate)) {
                 currentGroups.push(groupNameToCreate);
                 localStorage.setItem('userGroups', JSON.stringify(currentGroups));
                 console.log('Updated userGroups in localStorage:', currentGroups);
-                // Оповестить другие компоненты об обновлении? (Сложнее)
             }
         } catch (e) {
             console.error("Failed to update userGroups in localStorage", e);

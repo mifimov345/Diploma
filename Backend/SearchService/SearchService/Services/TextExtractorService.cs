@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-// Используем псевдонимы для разрешения конфликтов и уточнения
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 using PdfPigOptions = UglyToad.PdfPig.ParsingOptions;
 using PdfPigPage = UglyToad.PdfPig.Content.Page;
@@ -15,12 +14,6 @@ using ExcelXLS = NPOI.HSSF.UserModel;
 
 namespace SearchService.Services
 {
-    public interface ITextExtractorService
-    {
-        bool SupportsContentType(string? contentType, string? fileName);
-
-        Task<string?> ExtractTextAsync(Stream fileStream, string? contentType, string? fileName);
-    }
 
     public class TextExtractorService : ITextExtractorService
     {
@@ -99,7 +92,7 @@ namespace SearchService.Services
 
                 try
                 {
-                    return await Task.Run<string?>(() => 
+                    return await Task.Run<string?>(() =>
                     {
                         if (lowerContentType == "application/pdf" || extension == ".pdf")
                         {
@@ -146,7 +139,7 @@ namespace SearchService.Services
                 {
                     if (document.NumberOfPages == 0)
                     {
-                       //_logger.LogWarning("PdfPig: Document '{FileName}' has 0 pages.", fileName);
+                        //_logger.LogWarning("PdfPig: Document '{FileName}' has 0 pages.", fileName);
                         return string.Empty;
                     }
 

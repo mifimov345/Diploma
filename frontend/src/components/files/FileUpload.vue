@@ -215,7 +215,7 @@ const processQueue = async () => {
          currentItem.errorMsg = 'Группа не была выбрана для этого файла.';
          isUploading.value = false;
         await nextTick();
-        processQueue(); // Переходим к следующему
+        processQueue();
          return;
     }
 
