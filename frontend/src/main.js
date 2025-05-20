@@ -4,7 +4,7 @@ import router from './router';
 import axios from 'axios';
 
 
-axios.defaults.baseURL = process.env.VUE_APP_API_BASE_URL || 'http://127.0.0.1:5000';
+axios.defaults.baseURL = process.env.VUE_APP_API_BASE_URL || '';
 //console.log('Axios Base URL configured:', axios.defaults.baseURL);
 
 axios.interceptors.request.use(config => {

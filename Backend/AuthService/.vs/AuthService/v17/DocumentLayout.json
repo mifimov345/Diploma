@@ -7,6 +7,10 @@
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -55,10 +59,6 @@
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\controllers\\logincontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\authservice\\authservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{B78BA524-ED04-4C24-9CE1-62F5B97068CC}|AuthService\\AuthService.csproj|solutionrelative:authservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
@@ -98,7 +98,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "PasswordHelper.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Utils\\PasswordHelper.cs",
               "RelativeDocumentMoniker": "AuthService\\Utils\\PasswordHelper.cs",
@@ -106,12 +106,11 @@
               "RelativeToolTip": "AuthService\\Utils\\PasswordHelper.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAABEAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:55:32.997Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:55:32.997Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "IGroupService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Services\\IGroupService.cs",
               "RelativeDocumentMoniker": "AuthService\\Services\\IGroupService.cs",
@@ -119,12 +118,11 @@
               "RelativeToolTip": "AuthService\\Services\\IGroupService.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAABAAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:46:10.348Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:46:10.348Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "IUserService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Services\\IUserService.cs",
               "RelativeDocumentMoniker": "AuthService\\Services\\IUserService.cs",
@@ -132,8 +130,7 @@
               "RelativeToolTip": "AuthService\\Services\\IUserService.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAABcAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:45:29.888Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:45:29.888Z"
             },
             {
               "$type": "Document",
@@ -150,7 +147,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 12,
               "Title": "AuthDbContext.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Data\\AuthDbContext.cs",
               "RelativeDocumentMoniker": "AuthService\\Data\\AuthDbContext.cs",
@@ -158,12 +155,11 @@
               "RelativeToolTip": "AuthService\\Data\\AuthDbContext.cs",
               "ViewState": "AQIAABMAAAAAAAAAAAAcwCYAAACdAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:39:59.996Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:39:59.996Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "GroupService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Services\\GroupService.cs",
               "RelativeDocumentMoniker": "AuthService\\Services\\GroupService.cs",
@@ -171,12 +167,11 @@
               "RelativeToolTip": "AuthService\\Services\\GroupService.cs",
               "ViewState": "AQIAADIAAAAAAAAAAAAIwEEAAAA1AAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:39:44.157Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:39:44.157Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "UserGroup.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Models\\UserGroup.cs",
               "RelativeDocumentMoniker": "AuthService\\Models\\UserGroup.cs",
@@ -184,12 +179,11 @@
               "RelativeToolTip": "AuthService\\Models\\UserGroup.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAAsAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:39:27.42Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:39:27.42Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 10,
               "Title": "Group.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Models\\Group.cs",
               "RelativeDocumentMoniker": "AuthService\\Models\\Group.cs",
@@ -197,12 +191,11 @@
               "RelativeToolTip": "AuthService\\Models\\Group.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAABEAAAABAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:39:15.838Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:39:15.838Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 13,
               "Title": "LoginController.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Controllers\\LoginController.cs",
               "RelativeDocumentMoniker": "AuthService\\Controllers\\LoginController.cs",
@@ -210,12 +203,11 @@
               "RelativeToolTip": "AuthService\\Controllers\\LoginController.cs",
               "ViewState": "AQIAAGIAAAAAAAAAAAAwwHUAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-08T17:55:00.867Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-08T17:55:00.867Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "LogUserClaimsActionsFilter.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Filters\\LogUserClaimsActionsFilter.cs",
               "RelativeDocumentMoniker": "AuthService\\Filters\\LogUserClaimsActionsFilter.cs",
@@ -223,12 +215,11 @@
               "RelativeToolTip": "AuthService\\Filters\\LogUserClaimsActionsFilter.cs",
               "ViewState": "AQIAAAMAAAAAAAAAAAAAABsAAAANAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-08T16:09:16.351Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-08T16:09:16.351Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "UserService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Services\\UserService.cs",
               "RelativeDocumentMoniker": "AuthService\\Services\\UserService.cs",
@@ -236,12 +227,11 @@
               "RelativeToolTip": "AuthService\\Services\\UserService.cs",
               "ViewState": "AQIAADgBAAAAAAAAAAAgwAwAAAArAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-06T15:59:13.651Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-06T15:59:13.651Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "User.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Models\\User.cs",
               "RelativeDocumentMoniker": "AuthService\\Models\\User.cs",
@@ -249,8 +239,7 @@
               "RelativeToolTip": "AuthService\\Models\\User.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAABcAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-06T15:53:15.301Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-06T15:53:15.301Z"
             },
             {
               "$type": "Document",
@@ -301,7 +290,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Program.cs",
               "RelativeDocumentMoniker": "AuthService\\Program.cs",
@@ -309,18 +298,17 @@
               "RelativeToolTip": "AuthService\\Program.cs",
               "ViewState": "AQIAAA8AAAAAAAAAAAAAAC4AAAAaAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-02-25T12:23:23.911Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-02-25T12:23:23.911Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 1,
               "Title": "AuthController.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Controllers\\AuthController.cs",
               "RelativeDocumentMoniker": "AuthService\\Controllers\\AuthController.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\AuthService\\AuthService\\Controllers\\AuthController.cs",
               "RelativeToolTip": "AuthService\\Controllers\\AuthController.cs",
-              "ViewState": "AQIAAFsBAAAAAAAAAAAAAHMBAAAAAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAHMBAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-01-14T19:37:35.809Z",
               "EditorCaption": ""

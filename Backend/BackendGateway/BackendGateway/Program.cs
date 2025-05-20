@@ -15,6 +15,8 @@ builder.Logging.AddDebug();
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
+Console.WriteLine("BackendGateway started!");
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontendSpecific", policy =>

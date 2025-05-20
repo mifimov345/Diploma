@@ -129,7 +129,7 @@ namespace FileService.Controllers
                         form.Add(new StreamContent(fileStream), "file", metadata.OriginalName);
                         form.Add(new StringContent(metadata.ContentType ?? ""), "contentType");
 
-                        var response = await client.PostAsync("http://searchservice/api/text-extract/extract", form);
+                        var response = await client.PostAsync("http://search-service/api/text-extract/extract", form);
 
                         if (response.IsSuccessStatusCode)
                         {
@@ -164,7 +164,7 @@ namespace FileService.Controllers
                         _logger.LogInformation("[Lucene] Отправляется запрос индексации: {Json}", jsonRequest);
 
                         var indexResponse = await client.PostAsJsonAsync(
-                            "http://searchservice/api/index/index",
+                            "http://search-service/api/index/index",
                             indexRequest
                         );
 
@@ -183,7 +183,7 @@ namespace FileService.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "[Lucene] Failed to index file {FileId} in SearchService", metadata.Id);
+                        _logger.LogError(ex, "[Lucene] Failed to index file {FileId} in search-service", metadata.Id);
                     }
 
                     return Ok(new
@@ -280,7 +280,7 @@ namespace FileService.Controllers
         [HttpGet("search")]
         public IActionResult SearchFiles([FromQuery] string term, [FromQuery] string scope = "default")
         {
-            return StatusCode(StatusCodes.Status501NotImplemented, "Search is only available via SearchService.");
+            return StatusCode(StatusCodes.Status501NotImplemented, "Search is only available via search-service.");
         }
 
         // ======== DOWNLOAD ========
@@ -393,15 +393,15 @@ namespace FileService.Controllers
                 try
                 {
                     var client = _httpClientFactory.CreateClient();
-                    var response = await client.DeleteAsync($"http://searchservice/api/index/delete/{id}");
+                    var response = await client.DeleteAsync($"http://search-service/api/index/delete/{id}");
                     if (!response.IsSuccessStatusCode)
                     {
-                        _logger.LogWarning("Failed to remove file {FileId} from SearchService index: {Status} {Reason}", id, response.StatusCode, response.ReasonPhrase);
+                        _logger.LogWarning("Failed to remove file {FileId} from search-service index: {Status} {Reason}", id, response.StatusCode, response.ReasonPhrase);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error calling SearchService to delete index for file {FileId}", id);
+                    _logger.LogError(ex, "Error calling search-service to delete index for file {FileId}", id);
                 }
             }
             else
