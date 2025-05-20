@@ -31,28 +31,19 @@ namespace FileService.Controllers
     {
         private readonly IFileMetadataService _metadataService;
         private readonly ILogger<FileController> _logger;
-        private readonly string _uploadBasePath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly MinioService _minioService;
 
         public FileController(
             IFileMetadataService metadataService,
             ILogger<FileController> logger,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            MinioService minioService)
         {
             _metadataService = metadataService ?? throw new ArgumentNullException(nameof(metadataService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-            try
-            {
-                if (!Directory.Exists(_uploadBasePath))
-                {
-                    Directory.CreateDirectory(_uploadBasePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create or access upload base directory at: {Path}", _uploadBasePath);
-            }
+            _minioService = minioService ?? throw new ArgumentNullException(nameof(minioService));
         }
 
         internal const string GroupClaimTypeUri = "http://schemas.xmlsoap.org/claims/Group";
@@ -100,26 +91,15 @@ namespace FileService.Controllers
                     return Unauthorized("Invalid user claims in token.");
                 }
 
-                string userDirectoryPath = Path.Combine(_uploadBasePath, userId.ToString());
-                try
-                {
-                    Directory.CreateDirectory(userDirectoryPath);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка создания директории пользователя");
-                    return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error creating user directory.");
-                }
-
                 var storedFileName = $"{Guid.NewGuid()}{Path.GetExtension(model.File.FileName)}";
-                var filePath = Path.Combine(userDirectoryPath, storedFileName);
+                var fileKey = $"{userId}/{storedFileName}";
 
                 FileMetadata metadata = null;
                 try
                 {
-                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    using (var stream = model.File.OpenReadStream())
                     {
-                        await model.File.CopyToAsync(stream);
+                        await _minioService.UploadFileAsync(fileKey, stream, model.File.ContentType);
                     }
 
                     metadata = new FileMetadata
@@ -132,7 +112,7 @@ namespace FileService.Controllers
                         UploadedAt = DateTime.UtcNow,
                         UserId = userId,
                         UserGroup = model.TargetGroup,
-                        FilePath = filePath,
+                        FilePath = fileKey, // путь в бакете
                         Description = ""
                     };
                     await _metadataService.AddMetadataAsync(metadata);
@@ -143,7 +123,8 @@ namespace FileService.Controllers
                     {
                         var client = _httpClientFactory.CreateClient();
 
-                        using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                        // Качаем файл из MinIO для передачи в text-extract
+                        using var fileStream = await _minioService.DownloadFileAsync(fileKey);
                         using var form = new MultipartFormDataContent();
                         form.Add(new StreamContent(fileStream), "file", metadata.OriginalName);
                         form.Add(new StringContent(metadata.ContentType ?? ""), "contentType");
@@ -215,10 +196,7 @@ namespace FileService.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Ошибка во время сохранения файла");
-                    if (System.IO.File.Exists(filePath))
-                    {
-                        try { System.IO.File.Delete(filePath); } catch { }
-                    }
+                    try { await _minioService.DeleteFileAsync(fileKey); } catch { }
                     return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error during file upload.");
                 }
             }
@@ -325,14 +303,8 @@ namespace FileService.Controllers
             }
 
             FileMetadata metadata = null;
-            try
-            {
-                metadata = await _metadataService.GetMetadataByIdAsync(id);
-            }
-            catch
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information.");
-            }
+            try { metadata = await _metadataService.GetMetadataByIdAsync(id); }
+            catch { return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information."); }
 
             if (metadata == null)
                 return NotFound("File metadata not found.");
@@ -351,20 +323,10 @@ namespace FileService.Controllers
             if (string.IsNullOrEmpty(metadata.FilePath))
                 return NotFound("File path information is missing.");
 
-            FileStream fileStream = null;
             try
             {
-                if (!System.IO.File.Exists(metadata.FilePath))
-                    return NotFound("File data is missing on the server.");
-
-                fileStream = new FileStream(metadata.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
-
-                if (fileStream.Length == 0)
-                {
-                    await fileStream.DisposeAsync();
-                    fileStream = null;
-                    return NotFound("File appears to be empty on the server.");
-                }
+                var fileStream = await _minioService.DownloadFileAsync(metadata.FilePath);
+                if (fileStream.Length == 0) return NotFound("File appears to be empty on the server.");
 
                 var contentDisposition = new ContentDispositionHeaderValue(inline ? "inline" : "attachment");
                 contentDisposition.SetHttpFileName(metadata.OriginalName);
@@ -374,7 +336,6 @@ namespace FileService.Controllers
             }
             catch
             {
-                if (fileStream != null) await fileStream.DisposeAsync();
                 return StatusCode(StatusCodes.Status500InternalServerError, "An internal error occurred.");
             }
         }
@@ -399,14 +360,8 @@ namespace FileService.Controllers
             }
 
             FileMetadata metadata = null;
-            try
-            {
-                metadata = await _metadataService.GetMetadataByIdAsync(id);
-            }
-            catch
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information for deletion.");
-            }
+            try { metadata = await _metadataService.GetMetadataByIdAsync(id); }
+            catch { return StatusCode(StatusCodes.Status500InternalServerError, "Error retrieving file information for deletion."); }
 
             if (metadata == null)
                 return NotFound("File metadata not found.");
@@ -425,14 +380,16 @@ namespace FileService.Controllers
             if (!canDelete)
                 return Forbid("You do not have permission to delete this file.");
 
+            var fileKey = metadata.FilePath; // в FilePath теперь путь в бакете
             var filePath = await _metadataService.DeleteMetadataAndFileAsync(id);
 
+            // Удаляем файл из MinIO
+            if (!string.IsNullOrEmpty(fileKey))
+            {
+                try { await _minioService.DeleteFileAsync(fileKey); } catch { }
+            }
             if (filePath != null)
             {
-                if (System.IO.File.Exists(filePath))
-                {
-                    try { System.IO.File.Delete(filePath); } catch { }
-                }
                 try
                 {
                     var client = _httpClientFactory.CreateClient();
@@ -506,11 +463,9 @@ namespace FileService.Controllers
 
             if (metadata == null || string.IsNullOrEmpty(metadata.FilePath)) return NotFound();
 
-            if (!System.IO.File.Exists(metadata.FilePath)) return NotFound();
-
             try
             {
-                var fileStream = new FileStream(metadata.FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+                var fileStream = await _minioService.DownloadFileAsync(metadata.FilePath);
                 return File(fileStream, metadata.ContentType ?? "application/octet-stream");
             }
             catch

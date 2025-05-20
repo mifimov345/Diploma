@@ -49,6 +49,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "AWSSDK.S3": {
+              "target": "Package",
+              "version": "[4.0.0.5, )"
+            },
             "Lucene.Net": {
               "target": "Package",
               "version": "[4.8.0-beta00017, )"
@@ -60,6 +64,10 @@
             "Lucene.Net.QueryParser": {
               "target": "Package",
               "version": "[4.8.0-beta00017, )"
+            },
+            "Minio": {
+              "target": "Package",
+              "version": "[6.0.4, )"
             },
             "NPOI": {
               "target": "Package",

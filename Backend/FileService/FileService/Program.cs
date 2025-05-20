@@ -15,6 +15,8 @@ builder.Logging.SetMinimumLevel(LogLevel.Debug);
 builder.Services.AddDbContext<FileDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddSingleton<MinioService>();
+
 builder.Services.AddScoped<IFileMetadataService, FileMetadataService>();
 
 builder.Services.AddControllers();

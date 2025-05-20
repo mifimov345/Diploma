@@ -22,12 +22,13 @@ namespace SearchService.Services
         private readonly Directory _indexDirectory;
         private readonly ILogger<SearcherService> _logger;
         private readonly string _indexPath;
+        private readonly MinioService _minioService;
 
-        public SearcherService(IConfiguration configuration, ILogger<SearcherService> logger)
+        public SearcherService(IConfiguration configuration, ILogger<SearcherService> logger, MinioService minioService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _indexPath = configuration["LuceneIndexPath"] ?? "lucene_index";
-
+            _minioService = minioService;
             try
             {
                 if (!System.IO.Directory.Exists(_indexPath))

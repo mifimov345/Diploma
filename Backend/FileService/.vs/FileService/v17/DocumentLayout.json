@@ -3,12 +3,36 @@
   "WorkspaceRootPath": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\services\\ifilemetadataservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\services\\ifilemetadataservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\controllers\\filecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\controllers\\filecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\services\\minioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\services\\minioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\services\\filemetadataservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\services\\filemetadataservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\services\\ifilemetadataservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\services\\ifilemetadataservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\fileservice.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\fileservice.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\models\\filemetadata.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -19,28 +43,8 @@
       "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\data\\filedbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\controllers\\filecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\controllers\\filecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\fileservice.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
-      "RelativeMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|solutionrelative:fileservice\\fileservice.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{01A02246-E59F-4DD2-9AE9-5C7C5B76CA5A}|FileService\\FileService.csproj|c:\\users\\mifim\\desktop\\diplomaapp\\abvgd\\diploma\\backend\\fileservice\\fileservice\\fileservice.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
@@ -54,7 +58,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 14,
           "Children": [
             {
               "$type": "Bookmark",
@@ -70,33 +74,45 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
+              "Title": "MinioService.cs",
+              "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Services\\MinioService.cs",
+              "RelativeDocumentMoniker": "FileService\\Services\\MinioService.cs",
+              "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Services\\MinioService.cs",
+              "RelativeToolTip": "FileService\\Services\\MinioService.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAACoAAABEAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-19T21:07:24.187Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
               "Title": "IFileMetadataService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Services\\IFileMetadataService.cs",
               "RelativeDocumentMoniker": "FileService\\Services\\IFileMetadataService.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Services\\IFileMetadataService.cs",
               "RelativeToolTip": "FileService\\Services\\IFileMetadataService.cs",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAABYAAAAAAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA8AAABnAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:59:56.11Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:59:56.11Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 3,
               "Title": "appsettings.Development.json",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\appsettings.Development.json",
               "RelativeDocumentMoniker": "FileService\\appsettings.Development.json",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\appsettings.Development.json",
               "RelativeToolTip": "FileService\\appsettings.Development.json",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA0AAAAAAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABQAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2025-05-15T22:57:54.687Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 9,
               "Title": "FileDbContext.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Data\\FileDbContext.cs",
               "RelativeDocumentMoniker": "FileService\\Data\\FileDbContext.cs",
@@ -104,12 +120,11 @@
               "RelativeToolTip": "FileService\\Data\\FileDbContext.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAAsAAAA+AAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-15T22:57:35.1Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-15T22:57:35.1Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 7,
               "Title": "FileService.http",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.http",
               "RelativeDocumentMoniker": "FileService\\FileService.http",
@@ -121,20 +136,19 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "FileMetadataService.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Services\\FileMetadataService.cs",
               "RelativeDocumentMoniker": "FileService\\Services\\FileMetadataService.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Services\\FileMetadataService.cs",
               "RelativeToolTip": "FileService\\Services\\FileMetadataService.cs",
-              "ViewState": "AQIAAGkAAAAAAAAAAAA3wGsAAAAAAAAA",
+              "ViewState": "AQIAACsAAAAAAAAAAAAcwFMAAAAJAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-06T17:09:00.583Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-06T17:09:00.583Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 8,
               "Title": "FileMetadata.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Models\\FileMetadata.cs",
               "RelativeDocumentMoniker": "FileService\\Models\\FileMetadata.cs",
@@ -142,24 +156,23 @@
               "RelativeToolTip": "FileService\\Models\\FileMetadata.cs",
               "ViewState": "AQIAAAAAAAAAAAAAAAAAAA8AAAAvAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-04-06T17:08:19.79Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-04-06T17:08:19.79Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "FileService.csproj",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj",
               "RelativeDocumentMoniker": "FileService\\FileService.csproj",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\FileService.csproj",
               "RelativeToolTip": "FileService\\FileService.csproj",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA8AAABcAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA8AAAA+AAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
               "WhenOpened": "2025-02-25T20:17:57.16Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 10,
               "Title": "launchSettings.json",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Properties\\launchSettings.json",
               "RelativeDocumentMoniker": "FileService\\Properties\\launchSettings.json",
@@ -171,37 +184,38 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 2,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\appsettings.json",
               "RelativeDocumentMoniker": "FileService\\appsettings.json",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\appsettings.json",
               "RelativeToolTip": "FileService\\appsettings.json",
-              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAsAAAAVAAAA",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABQAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2025-02-25T13:28:41.642Z"
+              "WhenOpened": "2025-02-25T13:28:41.642Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 5,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Program.cs",
               "RelativeDocumentMoniker": "FileService\\Program.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Program.cs",
               "RelativeToolTip": "FileService\\Program.cs",
-              "ViewState": "AQIAABIAAAAAAAAAAAAIwCoAAAADAAAA",
+              "ViewState": "AQIAABMAAAAAAAAAAAAIwBUAAAAiAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-02-25T12:49:03.038Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
               "Title": "FileController.cs",
               "DocumentMoniker": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Controllers\\FileController.cs",
               "RelativeDocumentMoniker": "FileService\\Controllers\\FileController.cs",
               "ToolTip": "C:\\Users\\mifim\\Desktop\\DiplomaApp\\abvgd\\Diploma\\Backend\\FileService\\FileService\\Controllers\\FileController.cs",
               "RelativeToolTip": "FileService\\Controllers\\FileController.cs",
-              "ViewState": "AQIAAN0BAAAAAAAAAAAgwLMBAAAAAAAA",
+              "ViewState": "AQIAALgBAAAAAAAAAAAswIAAAABfAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-01-14T19:36:43.574Z",
               "EditorCaption": ""

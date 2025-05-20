@@ -14,11 +14,13 @@ namespace FileService.Services
     {
         private readonly FileDbContext _db;
         private readonly ILogger<FileMetadataService> _logger;
+        private readonly MinioService _minioService;
 
-        public FileMetadataService(FileDbContext db, ILogger<FileMetadataService> logger)
+        public FileMetadataService(FileDbContext db, ILogger<FileMetadataService> logger, MinioService minioService)
         {
             _db = db;
             _logger = logger;
+            _minioService = minioService;
         }
 
         public async Task AddMetadataAsync(FileMetadata metadata)
@@ -68,10 +70,15 @@ namespace FileService.Services
             var entity = await _db.FileMetadatas.FirstOrDefaultAsync(m => m.Id == id);
             if (entity != null)
             {
-                var path = entity.FilePath;
+                var fileKey = entity.FilePath;
                 _db.FileMetadatas.Remove(entity);
                 await _db.SaveChangesAsync();
-                return path;
+                // Удаляем из MinIO
+                if (!string.IsNullOrEmpty(fileKey))
+                {
+                    try { await _minioService.DeleteFileAsync(fileKey); } catch { }
+                }
+                return fileKey;
             }
             return null;
         }
